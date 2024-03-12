@@ -5,8 +5,13 @@
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "homepage": "https://github.com/OpeOginni/solana-trade-connect/tree/main/solana-key-secure",
+  "repository": {
+    "url": "https://github.com/OpeOginni/solana-trade-connect/tree/main/solana-key-secure"
+  },
   "scripts": {
-    "build": "tsup"
+    "build": "tsup",
+    "publish": "tsup && npm publish"
   },
   "keywords": [
     "Solana",
