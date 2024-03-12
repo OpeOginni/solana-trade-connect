@@ -1,0 +1,26 @@
+{
+  "name": "solana-KMS-key-secure",
+  "description": "Create Solana Wallets, and store private keys securely using AWS KMS",
+  "version": "0.0.1",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsup"
+  },
+  "keywords": [
+    "Solana",
+    "KMS",
+    "Encryption"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "tsup": "^8.0.2",
+    "typescript": "^5.4.2"
+  },
+  "dependencies": {
+    "@aws-sdk/client-kms": "^3.529.1",
+    "@solana/web3.js": "^1.91.0"
+  }
+}
