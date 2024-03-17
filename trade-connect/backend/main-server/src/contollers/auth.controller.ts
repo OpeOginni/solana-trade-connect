@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { generateAccessKey } from "../lib/auth";
-import { createCompanySchema, removeWhitelistedCollectionSchema, signInCompanySchema, updateWhitelistedCollectionSchema } from "../types/auth.type";
+import { createCompanySchema, signInCompanySchema, updateWhitelistedCollectionSchema } from "../types/auth.type";
 import {
   addWhitelistCollectionService,
   createCompanyService,

@@ -24,3 +24,6 @@ app.use("/api/v1/trades", tradeRouter);
 app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);
 });
+
+// MOVING TO GRPC to communicate with chat server
+// https://www.youtube.com/watch?v=iq2z7xw8VmE&list=PLGi7TVtAk-vM_hDcXKcLEGSkDtc64myjD&index=2
