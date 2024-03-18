@@ -3,6 +3,7 @@ import buildServer from "./app";
 import { getGrpcServer } from "../../grpc/dist";
 import { CompanyServiceHandlers } from "../../grpc/dist/proto/chat_main/CompanyService";
 import { saveCompanySchema } from "./types/company.types";
+import { getGRPCServer } from "./grpc";
 
 dotenv.config();
 
@@ -28,6 +29,7 @@ grpcServer.addService(grpcPackage.CompanyService.service, {
 
 async function main() {
   const app = await buildServer();
+  const grpcServer = await getGRPCServer();
 
   try {
     app.listen(PORT, HOST, () => {

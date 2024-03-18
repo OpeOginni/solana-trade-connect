@@ -2,8 +2,13 @@ import { Socket } from "socket.io";
 import { NewMessageDto, StoredUserDto, newMessageSchema } from "../types/websocket.types";
 import Redis from "ioredis";
 import dotenv from "dotenv";
+import { SaveCompanyDto } from "../types/company.types";
 dotenv.config();
 const UPSTASH_REDIS_REST_URL = process.env.UPSTASH_REDIS_REST_URL;
+
+const REDIS_PORT = parseInt(process.env.REDIS_PORT || "6379");
+const REDIS_HOST = process.env.REDIS_HOST;
+const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
 
 const ONLINE_COUNT_UPDATED_CHANNEL = "company_online_count_updated";
 const COMPANY_ONLINE_COUNT_UPDATED_CHANNEL = (companyId: string) => `company:${companyId}:online_count_updated`;
@@ -17,6 +22,8 @@ const CHAT_KEY = (companyId: string, walletAddress1: string, walletAddress2: str
 };
 const USER_KEY = (companyId: string, userAddress: string) => `company:${companyId}:user:${userAddress}`;
 
+const COMPANY_KEY = (companyId: string) => `company:${companyId}`;
+
 const COMPANY_ONLINE_COUNT_KEY = (companyId: string) => `chat:company:${companyId}:connection_count`;
 const USER_RECENT_CHAT_LIST = (companyId: string, userAddress: string) => `recent_chats:${companyId}:user:${userAddress}`;
 const UNREAD_CHAT_LIST = (companyId: string, userAddress: string) => `unread_messages:${companyId}:user:${userAddress}`;
@@ -26,7 +33,23 @@ if (!UPSTASH_REDIS_REST_URL) {
   process.exit(1);
 }
 
-export async function initializeUser(socket: Socket, publisher: Redis, companyId: string, userAddress: string) {
+// const publisher = new Redis(UPSTASH_REDIS_REST_URL);
+const publisher = new Redis({
+  port: REDIS_PORT,
+  host: REDIS_HOST,
+  password: REDIS_PASSWORD,
+});
+
+export async function initializeCompany(dto: SaveCompanyDto) {
+  await publisher.set(COMPANY_ONLINE_COUNT_KEY(dto.companyId), 0);
+
+  await publisher.hset(COMPANY_KEY(dto.companyId), {
+    access_key: dto.accessKey,
+    company_id: dto.companyId,
+  });
+}
+
+export async function initializeUser(socket: Socket, companyId: string, userAddress: string) {
   await publisher.hset(USER_KEY(companyId, userAddress), {
     online: true,
     company_id: companyId,
@@ -46,7 +69,7 @@ export async function initializeUser(socket: Socket, publisher: Redis, companyId
   socket.emit("recent_chat_list", recentChatList);
 }
 
-export async function disconnectUser(socket: Socket, publisher: Redis, companyId: string, userAddress: string) {
+export async function disconnectUser(socket: Socket, companyId: string, userAddress: string) {
   const decrResult = await publisher.decr(COMPANY_ONLINE_COUNT_KEY(companyId));
   await publisher.publish(ONLINE_COUNT_UPDATED_CHANNEL, JSON.stringify({ companyId, count: decrResult }));
 
@@ -57,7 +80,7 @@ export async function disconnectUser(socket: Socket, publisher: Redis, companyId
   });
 }
 
-export async function sendMessage(publisher: Redis, socket: Socket, companyId: string, senderAddress: string, newMessage: NewMessageDto) {
+export async function sendMessage(socket: Socket, companyId: string, senderAddress: string, newMessage: NewMessageDto) {
   const message = newMessageSchema.parse(newMessage);
 
   const reciever = await publisher.hgetall(`company:${companyId}:user:${message.toAddress}`);
@@ -71,18 +94,18 @@ export async function sendMessage(publisher: Redis, socket: Socket, companyId: s
   await publisher.rpush(CHAT_KEY(companyId, senderAddress, message.toAddress), JSON.stringify(message));
 
   // Update recent chats for sender and recipient
-  await updateRecentChats(publisher, companyId, senderAddress, message.toAddress);
+  await updateRecentChats(companyId, senderAddress, message.toAddress);
 
   // Update unread messages for recipient
-  await incrementUnreadMessages(publisher, companyId, message.toAddress, senderAddress, message.message);
+  await incrementUnreadMessages(companyId, message.toAddress, senderAddress, message.message);
 }
 
-async function updateRecentChats(publisher: Redis, companyId: string, userAddress1: string, userAddress2: string) {
+async function updateRecentChats(companyId: string, userAddress1: string, userAddress2: string) {
   await publisher.hset(USER_RECENT_CHAT_LIST(companyId, userAddress1), userAddress2, new Date().toISOString());
   await publisher.hset(USER_RECENT_CHAT_LIST(companyId, userAddress2), userAddress1, new Date().toISOString());
 }
 
-async function incrementUnreadMessages(publisher: Redis, companyId: string, recipientAddress: string, senderAddress: string, message: string) {
+async function incrementUnreadMessages(companyId: string, recipientAddress: string, senderAddress: string, message: string) {
   // Check if the recipient is online
   const recipientOnline = await publisher.hget(USER_KEY(companyId, recipientAddress), "online");
 

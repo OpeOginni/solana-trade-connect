@@ -8,6 +8,7 @@ import {
   signInCompanyService,
 } from "../services/auth.service";
 import errorHandler from "../lib/errorHandler";
+import { initCompanyInfoGRPC } from "../grpc";
 
 export async function createCompany(req: Request, res: Response) {
   try {
@@ -21,6 +22,9 @@ export async function createCompany(req: Request, res: Response) {
     });
 
     const company = await createCompanyService(dto);
+
+    await initCompanyInfoGRPC(company.id, accessKey);
+
     return res.status(200).json({ success: true, company });
   } catch (err: any) {
     return errorHandler(err, req, res);

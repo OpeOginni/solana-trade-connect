@@ -13,6 +13,10 @@ dotenv.config();
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:3000";
 const UPSTASH_REDIS_REST_URL = process.env.UPSTASH_REDIS_REST_URL;
 
+const REDIS_PORT = parseInt(process.env.REDIS_PORT || "6379");
+const REDIS_HOST = process.env.REDIS_HOST;
+const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
+
 const ONLINE_COUNT_UPDATED_CHANNEL = "company-online-count-updated";
 const COMPANY_ONLINE_COUNT_UPDATED_CHANNEL = (companyId: string) => `company:${companyId}:online-count-updated`;
 const NEW_MESSAGE_CHANNEL = "chat:new-message";
@@ -23,15 +27,19 @@ if (!UPSTASH_REDIS_REST_URL) {
   process.exit(1);
 }
 
+// const subscriber = new Redis(UPSTASH_REDIS_REST_URL);
+
+const subscriber = new Redis({
+  port: REDIS_PORT,
+  host: REDIS_HOST,
+  password: REDIS_PASSWORD,
+});
 // If we set encypted to true
 // const publisher = new Redis(UPSTASH_REDIS_REST_URL, {
 //   tls: {
 //     rejectUnauthorized: true,
 //   },
 // });
-
-const publisher = new Redis(UPSTASH_REDIS_REST_URL);
-const subscriber = new Redis(UPSTASH_REDIS_REST_URL);
 
 const corsOptions: CorsOptions = {
   origin: CORS_ORIGIN,
@@ -62,16 +70,16 @@ export default async function buildServer() {
     const companyId = socket.handshake.query.companyId as string;
     const userAddress = socket.handshake.query.userAddress as string;
 
-    await initializeUser(socket, publisher, companyId, userAddress);
+    await initializeUser(socket, companyId, userAddress);
 
     io.on("new_message", async (newMessage: NewMessageDto) => {
-      await sendMessage(publisher, socket, companyId, userAddress, newMessage);
+      await sendMessage(socket, companyId, userAddress, newMessage);
     });
 
     io.on("disconnect", async () => {
       console.log("Client Disconnected");
 
-      await disconnectUser(socket, publisher, companyId, userAddress);
+      await disconnectUser(socket, companyId, userAddress);
     });
   });
 

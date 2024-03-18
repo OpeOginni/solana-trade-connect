@@ -6,9 +6,6 @@ import express, { Express, Request, Response } from "express";
 
 import companyRouter from "./routes/auth.route";
 import tradeRouter from "./routes/trade.route";
-import { getGrpcServer } from "../../grpc/dist";
-import { TradeServiceHandlers } from "../../grpc/dist/proto/chat_main/TradeService";
-import { initializeTradeSchema } from "./types/trade.types";
 
 dotenv.config();
 
