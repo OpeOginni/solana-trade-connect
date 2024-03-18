@@ -6,4 +6,5 @@ export default defineConfig({
   format: ["cjs"],
   shims: true,
   skipNodeModulesBundle: true,
+  external: ["../../grpc/dist", "../../../grpc/dist", "../../grpc/dist/proto/chat_main/TradeService"],
 });

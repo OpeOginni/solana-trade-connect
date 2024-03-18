@@ -1,29 +1,40 @@
 import dotenv from "dotenv";
-dotenv.config();
-
-import express, { Express, Request, Response } from "express";
+import helmet from "helmet";
 import bodyParser from "body-parser";
+import cors, { CorsOptions } from "cors";
+import express, { Express, Request, Response } from "express";
+
 import companyRouter from "./routes/auth.route";
 import tradeRouter from "./routes/trade.route";
+import { getGrpcServer } from "../../grpc/dist";
+import { TradeServiceHandlers } from "../../grpc/dist/proto/chat_main/TradeService";
+import { initializeTradeSchema } from "./types/trade.types";
 
-const port = process.env.PORT || 3000;
+dotenv.config();
 
-const app: Express = express();
+const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:3000";
 
-app.use(bodyParser.json());
+const corsOptions: CorsOptions = {
+  origin: CORS_ORIGIN,
+  credentials: true,
+  optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
+};
 
-app.get("/", (req: Request, res: Response) => {
-  res.send({ server: "Express + TypeScript Server" });
-});
+export default async function buildRestServer() {
+  const app: Express = express();
 
-// ROUTES
-app.use("/api/v1/companies", companyRouter);
+  app.use(helmet());
+  app.use(cors(corsOptions));
+  app.use(bodyParser.json());
 
-app.use("/api/v1/trades", tradeRouter);
+  app.get("/", (req: Request, res: Response) => {
+    res.send({ server: "Express + TypeScript Server" });
+  });
 
-app.listen(port, () => {
-  console.log(`[server]: Server is running at http://localhost:${port}`);
-});
+  // ROUTES
+  app.use("/api/v1/companies", companyRouter);
 
-// MOVING TO GRPC to communicate with chat server
-// https://www.youtube.com/watch?v=iq2z7xw8VmE&list=PLGi7TVtAk-vM_hDcXKcLEGSkDtc64myjD&index=2
+  app.use("/api/v1/trades", tradeRouter);
+
+  return app;
+}

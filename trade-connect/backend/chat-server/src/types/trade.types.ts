@@ -2,8 +2,7 @@ import { z } from "zod";
 
 //TODO: Validate the Address String type by giving address lenght, etc
 export const initializeTradeSchema = z.object({
-  // companyId: z.string().uuid(),
-  companyId: z.string(),
+  companyId: z.string().uuid(),
   tradeCreatorAddress: z.string(),
   tradeCreatorSwapItems: z.string().array(),
   tradeRecipientAddress: z.string(),

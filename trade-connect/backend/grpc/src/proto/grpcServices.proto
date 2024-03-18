@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package chat_main;
+
+service CompanyService {
+    rpc InitCompanyInfo(InitCompanyInfoRequest) returns (InitCompanyInfoResponse);
+}
+
+service TradeService {
+    rpc CreateTrade(CreateTradeRequest) returns (CreateTradeResponse);
+}
+
+message InitCompanyInfoRequest {
+  string companyId = 1;
+  string accessKey = 2;
+}
+
+message InitCompanyInfoResponse {
+  bool success = 1;
+}
+
+message CreateTradeRequest {
+  string companyId = 1;
+  string tradeCreatorAddress = 2;
+  repeated string tradeCreatorSwapItems = 3;
+  string tradeRecipientAddress = 4;
+  repeated string tradeRecipientSwapItems = 5;
+}
+
+message CreateTradeResponse {
+  bool success = 1;
+  string tradeId = 2;
+}
