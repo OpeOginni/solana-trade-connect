@@ -6,8 +6,9 @@ import dotenv from "dotenv";
 import { getHealthCheck } from "./controllers/health-check.controller";
 import cors, { CorsOptions } from "cors";
 import Redis from "ioredis";
-import { disconnectUser, initializeUser, sendMessage } from "./controllers/websocket.controller";
-import { NewMessageDto } from "./types/websocket.types";
+import { disconnectUser, initializeUser, sendMessage } from "./websocket/messages.websocket";
+import { NewMessageDto } from "./types/message.types";
+import { setupRedisSubscriptions } from "./redis/redisSubscription";
 dotenv.config();
 
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:3000";
@@ -28,18 +29,6 @@ if (!UPSTASH_REDIS_REST_URL) {
 }
 
 // const subscriber = new Redis(UPSTASH_REDIS_REST_URL);
-
-const subscriber = new Redis({
-  port: REDIS_PORT,
-  host: REDIS_HOST,
-  password: REDIS_PASSWORD,
-});
-// If we set encypted to true
-// const publisher = new Redis(UPSTASH_REDIS_REST_URL, {
-//   tls: {
-//     rejectUnauthorized: true,
-//   },
-// });
 
 const corsOptions: CorsOptions = {
   origin: CORS_ORIGIN,
@@ -76,6 +65,10 @@ export default async function buildServer() {
       await sendMessage(socket, companyId, userAddress, newMessage);
     });
 
+    io.on("create_trade", async (newMessage: NewMessageDto) => {
+      await sendMessage(socket, companyId, userAddress, newMessage);
+    });
+
     io.on("disconnect", async () => {
       console.log("Client Disconnected");
 
@@ -83,46 +76,7 @@ export default async function buildServer() {
     });
   });
 
-  subscriber.subscribe(ONLINE_COUNT_UPDATED_CHANNEL, (err, count) => {
-    if (err) {
-      console.error(`Error Subscribing to ${ONLINE_COUNT_UPDATED_CHANNEL}`, err);
-      return;
-    }
-
-    console.log(`${count} clients subscribed to ${ONLINE_COUNT_UPDATED_CHANNEL} channel`);
-  });
-
-  subscriber.subscribe(NEW_MESSAGE_CHANNEL, (err, count) => {
-    if (err) {
-      console.error(`Error Subscribing to ${NEW_MESSAGE_CHANNEL}`, err);
-      return;
-    }
-
-    console.log(`${count} clients subscribed to ${NEW_MESSAGE_CHANNEL} channel`);
-  });
-
-  subscriber.on("message", (channel, text) => {
-    if (channel === ONLINE_COUNT_UPDATED_CHANNEL) {
-      const { companyId, count } = JSON.parse(text); // Parse the JSON string
-
-      // Emits to that particular Company the number of online users
-      io.emit(COMPANY_ONLINE_COUNT_UPDATED_CHANNEL(companyId), {
-        count: count,
-      });
-
-      return;
-    }
-
-    if (channel === NEW_MESSAGE_CHANNEL) {
-      const { companyId, recipientAddress, senderAddress, message } = JSON.parse(text); // Parse the JSON string
-
-      // The specific user from a specific CompanyId will be listening to get newMessages (only get sent when they are online)
-      io.emit(USER_NEW_MESSAGE_CHANNEL(companyId, recipientAddress), {
-        sender: senderAddress,
-        message: message,
-      });
-    }
-  });
+  setupRedisSubscriptions(io);
 
   app.get("/healthcheck", getHealthCheck);
 

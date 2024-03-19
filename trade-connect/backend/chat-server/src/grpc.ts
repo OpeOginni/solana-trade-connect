@@ -3,7 +3,7 @@ import { getGrpcClient, getGrpcServer } from "../../grpc/dist";
 import { InitializeTradeDto, initializeTradeSchema } from "./types/trade.types";
 import { CompanyServiceHandlers } from "../../grpc/dist/proto/chat_main/CompanyService";
 import { saveCompanySchema } from "./types/company.types";
-import { initializeCompany } from "./controllers/websocket.controller";
+import { initializeCompany } from "./websocket/messages.websocket";
 
 const { server: grpcServer, grpc, grpcPackage } = getGrpcServer();
 

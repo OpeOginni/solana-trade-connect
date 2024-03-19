@@ -1,17 +1,10 @@
 import { Socket } from "socket.io";
-import { NewMessageDto, StoredUserDto, newMessageSchema } from "../types/websocket.types";
-import Redis from "ioredis";
-import dotenv from "dotenv";
-import { SaveCompanyDto } from "../types/company.types";
-dotenv.config();
-const UPSTASH_REDIS_REST_URL = process.env.UPSTASH_REDIS_REST_URL;
 
-const REDIS_PORT = parseInt(process.env.REDIS_PORT || "6379");
-const REDIS_HOST = process.env.REDIS_HOST;
-const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
+import { NewMessageDto, StoredUserDto, newMessageSchema } from "../types/message.types";
+import { publisher } from "../redis";
+import { SaveCompanyDto } from "../types/company.types";
 
 const ONLINE_COUNT_UPDATED_CHANNEL = "company_online_count_updated";
-const COMPANY_ONLINE_COUNT_UPDATED_CHANNEL = (companyId: string) => `company:${companyId}:online_count_updated`;
 const NEW_MESSAGE_CHANNEL = "chat:new_message";
 
 const CHAT_KEY = (companyId: string, walletAddress1: string, walletAddress2: string) => {
@@ -27,18 +20,6 @@ const COMPANY_KEY = (companyId: string) => `company:${companyId}`;
 const COMPANY_ONLINE_COUNT_KEY = (companyId: string) => `chat:company:${companyId}:connection_count`;
 const USER_RECENT_CHAT_LIST = (companyId: string, userAddress: string) => `recent_chats:${companyId}:user:${userAddress}`;
 const UNREAD_CHAT_LIST = (companyId: string, userAddress: string) => `unread_messages:${companyId}:user:${userAddress}`;
-
-if (!UPSTASH_REDIS_REST_URL) {
-  console.error("UPSTASH_REDIS_REST_URL is required");
-  process.exit(1);
-}
-
-// const publisher = new Redis(UPSTASH_REDIS_REST_URL);
-const publisher = new Redis({
-  port: REDIS_PORT,
-  host: REDIS_HOST,
-  password: REDIS_PASSWORD,
-});
 
 export async function initializeCompany(dto: SaveCompanyDto) {
   await publisher.set(COMPANY_ONLINE_COUNT_KEY(dto.companyId), 0);
@@ -56,17 +37,14 @@ export async function initializeUser(socket: Socket, companyId: string, userAddr
     user_address: userAddress,
   });
 
-  //TODO: ALWAYS INIT THE COMPANY COUNT ON THEIR SIGNING UP in other server
-
-  // const currentCompanyOnlineCount = await publisher.get(COMPANY_ONLINE_COUNT_KEY(companyId));
-  // if (!currentCompanyOnlineCount) await publisher.set(COMPANY_ONLINE_COUNT_KEY(companyId), 0);
-
   const incResult = await publisher.incr(COMPANY_ONLINE_COUNT_KEY(companyId));
 
   await publisher.publish(ONLINE_COUNT_UPDATED_CHANNEL, JSON.stringify({ companyId, count: incResult }));
 
-  const recentChatList = await publisher.lrange(USER_RECENT_CHAT_LIST(companyId, userAddress), 0, -1);
+  const unreadMessages = await publisher.hgetall(UNREAD_CHAT_LIST(companyId, userAddress));
+  const recentChatList = await publisher.hgetall(USER_RECENT_CHAT_LIST(companyId, userAddress));
   socket.emit("recent_chat_list", recentChatList);
+  socket.emit("unread_messages", unreadMessages);
 }
 
 export async function disconnectUser(socket: Socket, companyId: string, userAddress: string) {
