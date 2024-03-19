@@ -1,9 +1,9 @@
 import dotenv from "dotenv";
 import { getGrpcClient, getGrpcServer } from "../../grpc/dist";
-import { initializeTradeSchema } from "./types/trade.types";
+import { initializeTradeSchema, updateTradeItemsSchema, updateTradeStatusSchema } from "./types/trade.types";
 import { TradeServiceHandlers } from "../../grpc/dist/proto/chat_main/TradeService";
 
-const { server: grpcServer, grpc, grpcPackage } = getGrpcServer();
+const { server: grpcServer, grpcPackage } = getGrpcServer();
 
 dotenv.config();
 
@@ -29,7 +29,7 @@ export async function initCompanyInfoGRPC(companyId: string, accessKey: string) 
   );
 }
 
-export async function getGRPCServer() {
+export async function _getGRPCServer() {
   // GRPC SERVER SETUP
   grpcServer.addService(grpcPackage.TradeService.service, {
     CreateTrade: (req, res) => {
@@ -40,6 +40,41 @@ export async function getGRPCServer() {
       console.log("CREATING THE TRADE");
       res(null, { success: true });
       // console.log(req, res);
+    },
+    UpdateTradeItems: (req, res) => {
+      const dto = updateTradeItemsSchema.parse(req.request);
+      console.log(dto);
+
+      console.log("CALLED Update Trade");
+      console.log("UPDATING THE TRASE");
+      // RETURN FLASE SUCCESS IF error occurs
+      res(null, { success: true, tradeId: dto.tradeId });
+    },
+    AcceptTrade: (req, res) => {
+      const dto = updateTradeStatusSchema.parse(req.request);
+      console.log(dto);
+
+      console.log("CALLED ACCEPT Trade");
+      console.log("ACCEPTING THE TRADE");
+      // RETURN FLASE SUCCESS IF error occurs
+      res(null, { success: true, tradeId: dto.tradeId });
+    },
+    RejectTrade: (req, res) => {
+      const dto = updateTradeStatusSchema.parse(req.request);
+      console.log(dto);
+
+      console.log("CALLED Reject Trade");
+      console.log("CREATING THE TRADE");
+      // RETURN FLASE SUCCESS IF error occurs
+      res(null, { success: true });
+    },
+    CancleTrade: (req, res) => {
+      const dto = updateTradeStatusSchema.parse(req.request);
+      console.log(dto);
+
+      console.log("CALLED Cancle Trade");
+      // RETURN FLASE SUCCESS IF error occurs
+      res(null, { success: true });
     },
   } as TradeServiceHandlers);
 

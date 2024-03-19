@@ -1,9 +1,5 @@
 import { Request, Response } from "express";
-import {
-  acceptTradeSchema,
-  initializeTradeSchema,
-  updateTradeItemsSchema,
-} from "../types/trade.types";
+import { updateTradeStatusSchema, initializeTradeSchema, updateTradeItemsSchema } from "../types/trade.types";
 import {
   acceptTradeService,
   cancleTradeService,
@@ -42,7 +38,7 @@ export async function acceptTrade(req: Request, res: Response) {
     // TODO: IF POSSIBLE
     // GET request, sends in the tradeId in params
     // and updaterAddress from middleware
-    const dto = acceptTradeSchema.parse({
+    const dto = updateTradeStatusSchema.parse({
       tradeId: req.body.tradeId,
       updaterAddress: res.locals.updaterAddress,
     });
@@ -60,7 +56,7 @@ export async function rejectTrade(req: Request, res: Response) {
     // TODO: IF POSSIBLE
     // GET request, sends in the tradeId in params
     // and updaterAddress from middleware
-    const dto = acceptTradeSchema.parse({
+    const dto = updateTradeStatusSchema.parse({
       tradeId: req.body.tradeId,
       updaterAddress: res.locals.updaterAddress,
     });
@@ -78,7 +74,7 @@ export async function cancleTrade(req: Request, res: Response) {
     // TODO: IF POSSIBLE
     // GET request, sends in the tradeId in params
     // and updaterAddress from middleware
-    const dto = acceptTradeSchema.parse({
+    const dto = updateTradeStatusSchema.parse({
       tradeId: req.body.tradeId,
       updaterAddress: res.locals.updaterAddress,
     });

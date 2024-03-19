@@ -1,6 +1,6 @@
 import { Socket } from "socket.io";
 
-import { NewMessageDto, StoredUserDto, newMessageSchema } from "../types/message.types";
+import { NewMessageInputDto, newMessageSchema } from "../types/message.types";
 import { publisher } from "../redis";
 import { SaveCompanyDto } from "../types/company.types";
 
@@ -10,14 +10,14 @@ const NEW_MESSAGE_CHANNEL = "chat:new_message";
 const CHAT_KEY = (companyId: string, walletAddress1: string, walletAddress2: string) => {
   // Sort the wallet addresses
   const [firstAddress, secondAddress] = [walletAddress1, walletAddress2].sort();
-
-  return `chat:${companyId}:${firstAddress}:${secondAddress}`; // gives a definite key for the chat
+  // gives a definite key for the chat
+  return `chat:${companyId}:${firstAddress}:${secondAddress}`;
 };
+
 const USER_KEY = (companyId: string, userAddress: string) => `company:${companyId}:user:${userAddress}`;
-
 const COMPANY_KEY = (companyId: string) => `company:${companyId}`;
-
 const COMPANY_ONLINE_COUNT_KEY = (companyId: string) => `chat:company:${companyId}:connection_count`;
+
 const USER_RECENT_CHAT_LIST = (companyId: string, userAddress: string) => `recent_chats:${companyId}:user:${userAddress}`;
 const UNREAD_CHAT_LIST = (companyId: string, userAddress: string) => `unread_messages:${companyId}:user:${userAddress}`;
 
@@ -58,7 +58,7 @@ export async function disconnectUser(socket: Socket, companyId: string, userAddr
   });
 }
 
-export async function sendMessage(socket: Socket, companyId: string, senderAddress: string, newMessage: NewMessageDto) {
+export async function sendMessage(socket: Socket, companyId: string, senderAddress: string, newMessage: NewMessageInputDto) {
   const message = newMessageSchema.parse(newMessage);
 
   const reciever = await publisher.hgetall(`company:${companyId}:user:${message.toAddress}`);

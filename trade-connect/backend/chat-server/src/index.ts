@@ -1,13 +1,13 @@
 import dotenv from "dotenv";
-import buildServer from "./app";
+
 import { getGrpcServer } from "../../grpc/dist";
-import { CompanyServiceHandlers } from "../../grpc/dist/proto/chat_main/CompanyService";
-import { saveCompanySchema } from "./types/company.types";
-import { getGRPCServer } from "./grpc";
+
+import buildServer from "./app";
+import { _getGRPCServer } from "./grpc";
 
 dotenv.config();
 
-const { server: grpcServer, grpc } = getGrpcServer();
+const { grpc } = getGrpcServer();
 
 const PORT = parseInt(process.env.PORT || "3001");
 const HOST = process.env.HOST || "0.0.0.0";
@@ -17,7 +17,7 @@ const GRPC_HOST = process.env.GRPC_HOST || "0.0.0.0";
 
 async function main() {
   const app = await buildServer();
-  const grpcServer = await getGRPCServer();
+  const grpcServer = await _getGRPCServer();
 
   try {
     app.listen(PORT, HOST, () => {

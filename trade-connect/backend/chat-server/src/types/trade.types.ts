@@ -16,11 +16,11 @@ export const updateTradeItemsSchema = z.object({
   tradeRecipientSwapItems: z.string().array(),
 });
 
-export const acceptTradeSchema = z.object({
+export const updateTradeStatusSchema = z.object({
   tradeId: z.string().uuid(),
   updaterAddress: z.string(),
 });
 
 export type InitializeTradeDto = z.infer<typeof initializeTradeSchema>;
 export type UpdateTradeItemsDto = z.infer<typeof updateTradeItemsSchema>;
-export type AcceptTradeDto = z.infer<typeof acceptTradeSchema>;
+export type UpdateTradeStatusDto = z.infer<typeof updateTradeStatusSchema>;

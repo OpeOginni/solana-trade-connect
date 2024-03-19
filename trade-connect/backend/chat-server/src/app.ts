@@ -1,34 +1,21 @@
 import express from "express";
-import { Server, Socket } from "socket.io";
+import { Server } from "socket.io";
 import http from "http";
 import helmet from "helmet";
 import dotenv from "dotenv";
-import { getHealthCheck } from "./controllers/health-check.controller";
 import cors, { CorsOptions } from "cors";
-import Redis from "ioredis";
+
+import { getHealthCheck } from "./controllers/health-check.controller";
 import { disconnectUser, initializeUser, sendMessage } from "./websocket/messages.websocket";
 import { NewMessageDto } from "./types/message.types";
 import { setupRedisSubscriptions } from "./redis/redisSubscription";
+import { acceptTrade, cancleTrade, createTrade, rejectTrade, updateTrade } from "./websocket/trades.websocket";
+import { InitializeTradeDto, UpdateTradeItemsDto, UpdateTradeStatusDto } from "./types/trade.types";
+import socketErrorHandler from "./utils/emitError";
+
 dotenv.config();
 
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:3000";
-const UPSTASH_REDIS_REST_URL = process.env.UPSTASH_REDIS_REST_URL;
-
-const REDIS_PORT = parseInt(process.env.REDIS_PORT || "6379");
-const REDIS_HOST = process.env.REDIS_HOST;
-const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
-
-const ONLINE_COUNT_UPDATED_CHANNEL = "company-online-count-updated";
-const COMPANY_ONLINE_COUNT_UPDATED_CHANNEL = (companyId: string) => `company:${companyId}:online-count-updated`;
-const NEW_MESSAGE_CHANNEL = "chat:new-message";
-const USER_NEW_MESSAGE_CHANNEL = (companyId: string, userAddress: string) => `chat:new-message:${companyId}:${userAddress}`;
-
-if (!UPSTASH_REDIS_REST_URL) {
-  console.error("UPSTASH_REDIS_REST_URL is required");
-  process.exit(1);
-}
-
-// const subscriber = new Redis(UPSTASH_REDIS_REST_URL);
 
 const corsOptions: CorsOptions = {
   origin: CORS_ORIGIN,
@@ -61,14 +48,57 @@ export default async function buildServer() {
 
     await initializeUser(socket, companyId, userAddress);
 
+    // MESSAGE
     io.on("new_message", async (newMessage: NewMessageDto) => {
-      await sendMessage(socket, companyId, userAddress, newMessage);
+      try {
+        await sendMessage(socket, companyId, userAddress, newMessage);
+      } catch (err: any) {
+        socketErrorHandler(socket, err);
+      }
     });
 
-    io.on("create_trade", async (newMessage: NewMessageDto) => {
-      await sendMessage(socket, companyId, userAddress, newMessage);
+    // TRADE
+    io.on("create_trade", async (newTrade: InitializeTradeDto) => {
+      try {
+        await createTrade(socket, companyId, userAddress, newTrade);
+      } catch (err: any) {
+        socketErrorHandler(socket, err);
+      }
     });
 
+    io.on("update_trade_items", async (update: UpdateTradeItemsDto) => {
+      try {
+        await updateTrade(socket, companyId, userAddress, update);
+      } catch (err: any) {
+        socketErrorHandler(socket, err);
+      }
+    });
+
+    io.on("accept_trade", async (dto: UpdateTradeStatusDto) => {
+      try {
+        await acceptTrade(socket, companyId, userAddress, dto);
+      } catch (err: any) {
+        socketErrorHandler(socket, err);
+      }
+    });
+
+    io.on("reject_trade", async (dto: UpdateTradeStatusDto) => {
+      try {
+        await rejectTrade(socket, companyId, userAddress, dto);
+      } catch (err: any) {
+        socketErrorHandler(socket, err);
+      }
+    });
+
+    io.on("cancle_trade", async (dto: UpdateTradeStatusDto) => {
+      try {
+        await cancleTrade(socket, companyId, userAddress, dto);
+      } catch (err: any) {
+        socketErrorHandler(socket, err);
+      }
+    });
+
+    // DISCONNECT
     io.on("disconnect", async () => {
       console.log("Client Disconnected");
 

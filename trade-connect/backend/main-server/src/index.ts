@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 
 import buildRestServer from "./app";
 import { getGrpcServer } from "../../grpc/dist";
-import { getGRPCServer } from "./grpc";
+import { _getGRPCServer } from "./grpc";
 
 dotenv.config();
 
@@ -18,7 +18,7 @@ const GRPC_HOST = process.env.GRPC_HOST || "0.0.0.0";
 
 async function main() {
   const app = await buildRestServer();
-  const grpcServer = await getGRPCServer();
+  const grpcServer = await _getGRPCServer();
 
   try {
     app.listen(PORT, HOST, () => {
