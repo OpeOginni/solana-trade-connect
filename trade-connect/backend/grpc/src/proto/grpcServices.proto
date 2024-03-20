@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package chat_main;
+
+service CompanyService {
+    rpc InitCompanyInfo(InitCompanyInfoRequest) returns (InitCompanyInfoResponse);
+}
+
+service TradeService {
+    rpc CreateTrade(CreateTradeRequest) returns (CreateTradeResponse);
+    rpc UpdateTradeItems(UpdateTradeItemsRequest) returns (UpdateTradeItemsResponse);
+    rpc AcceptTrade(UpdateTradeStatusRequest) returns (UpdateTradeStatusResponse);
+    rpc RejectTrade(UpdateTradeStatusRequest) returns (UpdateTradeStatusResponse);
+    rpc CancleTrade(UpdateTradeStatusRequest) returns (UpdateTradeStatusResponse);
+}
+
+message InitCompanyInfoRequest {
+  string companyId = 1;
+  string accessKey = 2;
+}
+
+message InitCompanyInfoResponse {
+  bool success = 1;
+}
+
+message CreateTradeRequest {
+  string companyId = 1;
+  string tradeCreatorAddress = 2;
+  repeated string tradeCreatorSwapItems = 3;
+  string tradeRecipientAddress = 4;
+  repeated string tradeRecipientSwapItems = 5;
+}
+
+message CreateTradeResponse {
+  bool success = 1;
+  string tradeId = 2;
+}
+
+message UpdateTradeItemsRequest {
+  string tradeId = 1;
+  string updaterAddress = 2;
+  repeated string tradeCreatorSwapItems = 3;
+  repeated string tradeRecipientSwapItems = 4;
+}
+
+message UpdateTradeItemsResponse {
+  bool success = 1;
+  string tradeId = 2;
+  string otherUserAddress = 3;
+}
+
+message UpdateTradeStatusRequest {
+  string tradeId = 1;
+  string updaterAddress = 2;
+}
+
+message UpdateTradeStatusResponse {
+  bool success = 1;
+  string tradeId = 2;
+  string otherUserAddress = 3;
+}

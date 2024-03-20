@@ -1,0 +1,54 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id                     String   @id     @default(uuid())
+  email                  String   @unique
+  companyName            String   @unique
+  password               String
+  whitelistedCollections String[]
+  accessKey              AccessKey?
+  trades                 Trade[]
+}
+
+model Trade {
+  id                      String   @id @default(uuid())
+  company                 Company  @relation(fields: [companyId], references: [id])
+  companyId               String
+  tradeCreatorAddress     String
+  tradeCreatorSwapItems   String[]
+  tradeRecipientAddress   String
+  tradeRecipientSwapItems String[]
+  lastUpdatedBy           String
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  status                  Status   @default(PENDING)
+}
+
+model AccessKey {
+  accessKey String   @id  
+  company   Company  @relation(fields: [companyId], references: [id])
+  companyId String   @unique
+
+  @@unique([companyId, accessKey])
+}
+
+enum Status {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
