@@ -57,7 +57,7 @@ export async function addWhitelistCollectionService(dto: UpdateWhitelistedCollec
       id: dto.id,
     },
     data: {
-      whitelistedCollections: [...company.whitelistedCollections, dto.whitelistedCollection],
+      whitelistedCollections: [...company.whitelistedCollections, dto.collection],
     },
   });
 
@@ -71,7 +71,7 @@ export async function removeWhitelistCollectionService(dto: UpdateWhitelistedCol
     },
   });
 
-  const index = company.whitelistedCollections.indexOf(dto.whitelistedCollection);
+  const index = company.whitelistedCollections.indexOf(dto.collection);
 
   if (index === -1) throw new CustomError("Remove Error", "Invalid Collection", 400);
 
@@ -87,4 +87,18 @@ export async function removeWhitelistCollectionService(dto: UpdateWhitelistedCol
   });
 
   return removedCollection;
+}
+
+export async function authenticateAccessKey(companyId: string, accessKey: string) {
+  const access = await db.accessKey.findUnique({
+    where: {
+      companyId_accessKey: {
+        companyId,
+        accessKey,
+      },
+    },
+  });
+
+  if (!access) return false;
+  return true;
 }

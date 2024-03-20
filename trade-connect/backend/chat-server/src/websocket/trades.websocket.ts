@@ -12,7 +12,10 @@ import { acceptTradeGRPC, cancleTradeGRPC, createTradeGRPC, rejectTradeGRPC, upd
 import { sendMessage } from "./messages.websocket";
 import { NewMessageInputDto } from "../types/message.types";
 
-export async function createTrade(socket: Socket, companyId: string, userAddress: string, newTrade: InitializeTradeDto) {
+export async function createTrade(socket: Socket,  newTrade: InitializeTradeDto) {
+  const companyId = socket.data.user as string;
+  const userAddress = socket.data.userAddress as string;
+
   newTrade.companyId = companyId;
   newTrade.tradeCreatorAddress = userAddress;
   const trade = initializeTradeSchema.parse(newTrade);
@@ -24,10 +27,13 @@ export async function createTrade(socket: Socket, companyId: string, userAddress
     message: `[TRADE]:${response.tradeId}`,
   };
 
-  await sendMessage(socket, companyId, userAddress, newMessage);
+  await sendMessage(socket, newMessage);
 }
 
-export async function updateTrade(socket: Socket, companyId: string, userAddress: string, updatedItems: UpdateTradeItemsDto) {
+export async function updateTrade(socket: Socket, updatedItems: UpdateTradeItemsDto) {
+    const companyId = socket.data.user as string;
+  const userAddress = socket.data.userAddress as string;
+  
   updatedItems.updaterAddress = userAddress;
   const update = updateTradeItemsSchema.parse(updatedItems);
 
@@ -38,10 +44,13 @@ export async function updateTrade(socket: Socket, companyId: string, userAddress
     message: `[TRADE]:${response.tradeId}`,
   };
 
-  await sendMessage(socket, companyId, update.updaterAddress, newMessage);
+  await sendMessage(socket, newMessage);
 }
 
-export async function acceptTrade(socket: Socket, companyId: string, userAddress: string, updatedItems: UpdateTradeStatusDto) {
+export async function acceptTrade(socket: Socket, updatedItems: UpdateTradeStatusDto) {
+    const companyId = socket.data.user as string;
+  const userAddress = socket.data.userAddress as string;
+
   updatedItems.updaterAddress = userAddress;
   const update = updateTradeStatusSchema.parse(updatedItems);
 
@@ -52,10 +61,13 @@ export async function acceptTrade(socket: Socket, companyId: string, userAddress
     message: `[TRADE]:${response.tradeId}`,
   };
 
-  await sendMessage(socket, companyId, userAddress, newMessage);
+  await sendMessage(socket, newMessage);
 }
 
-export async function rejectTrade(socket: Socket, companyId: string, userAddress: string, updatedItems: UpdateTradeStatusDto) {
+export async function rejectTrade(socket: Socket, updatedItems: UpdateTradeStatusDto) {
+    const companyId = socket.data.user as string;
+  const userAddress = socket.data.userAddress as string;
+
   updatedItems.updaterAddress = userAddress;
 
   const update = updateTradeStatusSchema.parse(updatedItems);
@@ -67,10 +79,13 @@ export async function rejectTrade(socket: Socket, companyId: string, userAddress
     message: `[TRADE]:${response.tradeId}`,
   };
 
-  await sendMessage(socket, companyId, update.updaterAddress, newMessage);
+  await sendMessage(socket, newMessage);
 }
 
-export async function cancleTrade(socket: Socket, companyId: string, userAddress: string, updatedItems: UpdateTradeStatusDto) {
+export async function cancleTrade(socket: Socket, updatedItems: UpdateTradeStatusDto) {
+    const companyId = socket.data.user as string;
+  const userAddress = socket.data.userAddress as string;
+  
   updatedItems.updaterAddress = userAddress;
   const update = updateTradeStatusSchema.parse(updatedItems);
 
@@ -81,5 +96,5 @@ export async function cancleTrade(socket: Socket, companyId: string, userAddress
     message: `[TRADE]:${response.tradeId}`,
   };
 
-  await sendMessage(socket, companyId, update.updaterAddress, newMessage);
+  await sendMessage(socket, newMessage);
 }

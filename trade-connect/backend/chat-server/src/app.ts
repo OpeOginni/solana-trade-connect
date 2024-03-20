@@ -11,7 +11,8 @@ import { NewMessageDto } from "./types/message.types";
 import { setupRedisSubscriptions } from "./redis/redisSubscription";
 import { acceptTrade, cancleTrade, createTrade, rejectTrade, updateTrade } from "./websocket/trades.websocket";
 import { InitializeTradeDto, UpdateTradeItemsDto, UpdateTradeStatusDto } from "./types/trade.types";
-import socketErrorHandler from "./utils/emitError";
+import socketErrorHandler from "./lib/emitError";
+import { verifyUserToken } from "./lib/auth";
 
 dotenv.config();
 
@@ -36,22 +37,27 @@ export default async function buildServer() {
     cors: corsOptions,
   });
 
-  // socket IO middlewares (socket has access to requests using `socket.request`)
-  io.use((socket, next) => {});
+  io.use((socket, next) => {
+    // Added the headers for test with POSTMAN
+
+    const token = socket.handshake.auth?.token || socket.handshake.headers?.token;
+    try {
+      const decoded = verifyUserToken(token);
+      socket.data.user = decoded;
+    } catch (e) {
+      next(new Error("Authentication error"));
+    }
+  });
 
   io.on("connection", async (socket) => {
     console.log("Client Connected");
 
-    // We might decide to get this from a JWT that is sent with the ORIGINAL connection websocket request
-    const companyId = socket.handshake.query.companyId as string;
-    const userAddress = socket.handshake.query.userAddress as string;
-
-    await initializeUser(socket, companyId, userAddress);
+    await initializeUser(socket);
 
     // MESSAGE
     io.on("new_message", async (newMessage: NewMessageDto) => {
       try {
-        await sendMessage(socket, companyId, userAddress, newMessage);
+        await sendMessage(socket, newMessage);
       } catch (err: any) {
         socketErrorHandler(socket, err);
       }
@@ -60,7 +66,7 @@ export default async function buildServer() {
     // TRADE
     io.on("create_trade", async (newTrade: InitializeTradeDto) => {
       try {
-        await createTrade(socket, companyId, userAddress, newTrade);
+        await createTrade(socket, newTrade);
       } catch (err: any) {
         socketErrorHandler(socket, err);
       }
@@ -68,7 +74,7 @@ export default async function buildServer() {
 
     io.on("update_trade_items", async (update: UpdateTradeItemsDto) => {
       try {
-        await updateTrade(socket, companyId, userAddress, update);
+        await updateTrade(socket, update);
       } catch (err: any) {
         socketErrorHandler(socket, err);
       }
@@ -76,7 +82,7 @@ export default async function buildServer() {
 
     io.on("accept_trade", async (dto: UpdateTradeStatusDto) => {
       try {
-        await acceptTrade(socket, companyId, userAddress, dto);
+        await acceptTrade(socket, dto);
       } catch (err: any) {
         socketErrorHandler(socket, err);
       }
@@ -84,7 +90,7 @@ export default async function buildServer() {
 
     io.on("reject_trade", async (dto: UpdateTradeStatusDto) => {
       try {
-        await rejectTrade(socket, companyId, userAddress, dto);
+        await rejectTrade(socket, dto);
       } catch (err: any) {
         socketErrorHandler(socket, err);
       }
@@ -92,7 +98,7 @@ export default async function buildServer() {
 
     io.on("cancle_trade", async (dto: UpdateTradeStatusDto) => {
       try {
-        await cancleTrade(socket, companyId, userAddress, dto);
+        await cancleTrade(socket, dto);
       } catch (err: any) {
         socketErrorHandler(socket, err);
       }
@@ -102,7 +108,7 @@ export default async function buildServer() {
     io.on("disconnect", async () => {
       console.log("Client Disconnected");
 
-      await disconnectUser(socket, companyId, userAddress);
+      await disconnectUser(socket);
     });
   });
 

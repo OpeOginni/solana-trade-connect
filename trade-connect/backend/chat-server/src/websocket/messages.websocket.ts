@@ -30,7 +30,10 @@ export async function initializeCompany(dto: SaveCompanyDto) {
   });
 }
 
-export async function initializeUser(socket: Socket, companyId: string, userAddress: string) {
+export async function initializeUser(socket: Socket) {
+  const companyId = socket.data.user as string;
+  const userAddress = socket.data.userAddress as string;
+
   await publisher.hset(USER_KEY(companyId, userAddress), {
     online: true,
     company_id: companyId,
@@ -47,7 +50,10 @@ export async function initializeUser(socket: Socket, companyId: string, userAddr
   socket.emit("unread_messages", unreadMessages);
 }
 
-export async function disconnectUser(socket: Socket, companyId: string, userAddress: string) {
+export async function disconnectUser(socket: Socket) {
+  const companyId = socket.data.user as string;
+  const userAddress = socket.data.userAddress as string;
+
   const decrResult = await publisher.decr(COMPANY_ONLINE_COUNT_KEY(companyId));
   await publisher.publish(ONLINE_COUNT_UPDATED_CHANNEL, JSON.stringify({ companyId, count: decrResult }));
 
@@ -58,7 +64,9 @@ export async function disconnectUser(socket: Socket, companyId: string, userAddr
   });
 }
 
-export async function sendMessage(socket: Socket, companyId: string, senderAddress: string, newMessage: NewMessageInputDto) {
+export async function sendMessage(socket: Socket, newMessage: NewMessageInputDto) {
+  const companyId = socket.data.user as string;
+  const userAddress = socket.data.userAddress as string;
   const message = newMessageSchema.parse(newMessage);
 
   const reciever = await publisher.hgetall(`company:${companyId}:user:${message.toAddress}`);
@@ -69,13 +77,13 @@ export async function sendMessage(socket: Socket, companyId: string, senderAddre
     console.log("User Doesnt Exist");
     return;
   }
-  await publisher.rpush(CHAT_KEY(companyId, senderAddress, message.toAddress), JSON.stringify(message));
+  await publisher.rpush(CHAT_KEY(companyId, userAddress, message.toAddress), JSON.stringify(message));
 
   // Update recent chats for sender and recipient
-  await updateRecentChats(companyId, senderAddress, message.toAddress);
+  await updateRecentChats(companyId, userAddress, message.toAddress);
 
   // Update unread messages for recipient
-  await incrementUnreadMessages(companyId, message.toAddress, senderAddress, message.message);
+  await incrementUnreadMessages(companyId, message.toAddress, userAddress, message.message);
 }
 
 async function updateRecentChats(companyId: string, userAddress1: string, userAddress2: string) {

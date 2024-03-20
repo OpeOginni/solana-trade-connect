@@ -1,7 +1,10 @@
 import dotenv from "dotenv";
+import * as grpc from "@grpc/grpc-js";
 import { getGrpcClient, getGrpcServer } from "../../grpc/dist";
 import { initializeTradeSchema, updateTradeItemsSchema, updateTradeStatusSchema } from "./types/trade.types";
 import { TradeServiceHandlers } from "../../grpc/dist/proto/chat_main/TradeService";
+import { initializeTradeService, updateTradeItemsService } from "./services/trade.service";
+import grpcErrorHandler from "./lib/grpcErrorHandler";
 
 const { server: grpcServer, grpcPackage } = getGrpcServer();
 
@@ -32,49 +35,64 @@ export async function initCompanyInfoGRPC(companyId: string, accessKey: string) 
 export async function _getGRPCServer() {
   // GRPC SERVER SETUP
   grpcServer.addService(grpcPackage.TradeService.service, {
-    CreateTrade: (req, res) => {
-      const dto = initializeTradeSchema.parse(req.request);
-      console.log(dto);
+    CreateTrade: async (req, res) => {
+      try {
+        const dto = initializeTradeSchema.parse(req.request);
+        console.log(dto);
 
-      console.log("CALLED Create Trade");
-      console.log("CREATING THE TRADE");
-      res(null, { success: true });
-      // console.log(req, res);
+        const response = await initializeTradeService(dto);
+
+        res(null, { success: true, tradeId: response.id });
+      } catch (err: any) {
+        console.error(err);
+        return grpcErrorHandler(res, err);
+      }
     },
-    UpdateTradeItems: (req, res) => {
-      const dto = updateTradeItemsSchema.parse(req.request);
-      console.log(dto);
+    UpdateTradeItems: async (req, res) => {
+      try {
+        const dto = updateTradeItemsSchema.parse(req.request);
+        console.log(dto);
 
-      console.log("CALLED Update Trade");
-      console.log("UPDATING THE TRASE");
-      // RETURN FLASE SUCCESS IF error occurs
-      res(null, { success: true, tradeId: dto.tradeId });
+        const response = await updateTradeItemsService(dto);
+
+        res(null, { success: true, tradeId: response.id });
+      } catch (err: any) {
+        console.error(err);
+        return grpcErrorHandler(res, err);
+      }
     },
     AcceptTrade: (req, res) => {
-      const dto = updateTradeStatusSchema.parse(req.request);
-      console.log(dto);
+      try {
+        const dto = updateTradeStatusSchema.parse(req.request);
+        console.log(dto);
 
-      console.log("CALLED ACCEPT Trade");
-      console.log("ACCEPTING THE TRADE");
-      // RETURN FLASE SUCCESS IF error occurs
-      res(null, { success: true, tradeId: dto.tradeId });
+        res(null, { success: true, tradeId: dto.tradeId });
+      } catch (err: any) {
+        console.error(err);
+        return grpcErrorHandler(res, err);
+      }
     },
     RejectTrade: (req, res) => {
-      const dto = updateTradeStatusSchema.parse(req.request);
-      console.log(dto);
+      try {
+        const dto = updateTradeStatusSchema.parse(req.request);
+        console.log(dto);
 
-      console.log("CALLED Reject Trade");
-      console.log("CREATING THE TRADE");
-      // RETURN FLASE SUCCESS IF error occurs
-      res(null, { success: true });
+        res(null, { success: true });
+      } catch (err: any) {
+        console.error(err);
+        return grpcErrorHandler(res, err);
+      }
     },
     CancleTrade: (req, res) => {
-      const dto = updateTradeStatusSchema.parse(req.request);
-      console.log(dto);
+      try {
+        const dto = updateTradeStatusSchema.parse(req.request);
+        console.log(dto);
 
-      console.log("CALLED Cancle Trade");
-      // RETURN FLASE SUCCESS IF error occurs
-      res(null, { success: true });
+        res(null, { success: true });
+      } catch (err: any) {
+        console.error(err);
+        return grpcErrorHandler(res, err);
+      }
     },
   } as TradeServiceHandlers);
 

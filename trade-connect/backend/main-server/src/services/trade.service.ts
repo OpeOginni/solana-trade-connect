@@ -1,7 +1,9 @@
+import { status } from "@grpc/grpc-js";
+
 import db from "../db";
 import CustomError from "../lib/customError";
 import { TradeStatus } from "../types/enums";
-import { AcceptTradeDto, InitializeTradeDto, UpdateTradeItemsDto } from "../types/trade.types";
+import { InitializeTradeDto, UpdateTradeItemsDto, UpdateTradeStatusDto } from "../types/trade.types";
 
 export async function initializeTradeService(dto: InitializeTradeDto) {
   const newTrade = await db.trade.create({
@@ -26,7 +28,7 @@ export async function updateTradeItemsService(dto: UpdateTradeItemsDto) {
   });
 
   if (trade.tradeCreatorAddress !== dto.updaterAddress || trade.tradeRecipientAddress !== dto.updaterAddress)
-    throw new CustomError("Unauthorized Address", "This address cannot edit this trade", 401);
+    throw new CustomError("Unauthorized Address", "This address cannot edit this trade", status.PERMISSION_DENIED);
 
   const udatedTrade = await db.trade.update({
     where: {
@@ -42,7 +44,7 @@ export async function updateTradeItemsService(dto: UpdateTradeItemsDto) {
   return udatedTrade;
 }
 
-export async function acceptTradeService(dto: AcceptTradeDto) {
+export async function acceptTradeService(dto: UpdateTradeStatusDto) {
   const trade = await db.trade.findUniqueOrThrow({
     where: {
       id: dto.tradeId,
@@ -50,9 +52,10 @@ export async function acceptTradeService(dto: AcceptTradeDto) {
   });
 
   if (trade.tradeCreatorAddress !== dto.updaterAddress || trade.tradeRecipientAddress !== dto.updaterAddress)
-    throw new CustomError("Unauthorized Address", "This address cannot edit this trade", 401);
+    throw new CustomError("Unauthorized Address", "This address cannot edit this trade", status.PERMISSION_DENIED);
 
-  if (trade.lastUpdatedBy === dto.updaterAddress) throw new CustomError("Trade Error", "This address cannot accept the Trade", 401);
+  if (trade.lastUpdatedBy === dto.updaterAddress)
+    throw new CustomError("Trade Error", "This address cannot accept the Trade", status.PERMISSION_DENIED);
 
   const acceptedTrade = await db.trade.update({
     where: {
@@ -66,7 +69,7 @@ export async function acceptTradeService(dto: AcceptTradeDto) {
   return acceptedTrade;
 }
 
-export async function rejectTradeService(dto: AcceptTradeDto) {
+export async function rejectTradeService(dto: UpdateTradeStatusDto) {
   const trade = await db.trade.findUniqueOrThrow({
     where: {
       id: dto.tradeId,
@@ -74,10 +77,11 @@ export async function rejectTradeService(dto: AcceptTradeDto) {
   });
 
   if (trade.tradeCreatorAddress !== dto.updaterAddress || trade.tradeRecipientAddress !== dto.updaterAddress)
-    throw new CustomError("Unauthorized Address", "This address cannot edit this trade", 401);
+    throw new CustomError("Unauthorized Address", "This address cannot edit this trade", status.PERMISSION_DENIED);
 
   // The Rejecter must be the other user
-  if (trade.lastUpdatedBy === dto.updaterAddress) throw new CustomError("Trade Error", "This address cannot reject the Trade", 401);
+  if (trade.lastUpdatedBy === dto.updaterAddress)
+    throw new CustomError("Trade Error", "This address cannot reject the Trade", status.PERMISSION_DENIED);
 
   const rejectedTrade = await db.trade.update({
     where: {
@@ -91,7 +95,7 @@ export async function rejectTradeService(dto: AcceptTradeDto) {
   return rejectedTrade;
 }
 
-export async function cancleTradeService(dto: AcceptTradeDto) {
+export async function cancleTradeService(dto: UpdateTradeStatusDto) {
   const trade = await db.trade.findUniqueOrThrow({
     where: {
       id: dto.tradeId,
@@ -99,10 +103,11 @@ export async function cancleTradeService(dto: AcceptTradeDto) {
   });
 
   if (trade.tradeCreatorAddress !== dto.updaterAddress || trade.tradeRecipientAddress !== dto.updaterAddress)
-    throw new CustomError("Unauthorized Address", "This address cannot edit this trade", 401);
+    throw new CustomError("Unauthorized Address", "This address cannot edit this trade", status.PERMISSION_DENIED);
 
   // The caller must be the lastUpdated user
-  if (trade.lastUpdatedBy !== dto.updaterAddress) throw new CustomError("Trade Error", "This address cannot cancle the Trade", 401);
+  if (trade.lastUpdatedBy !== dto.updaterAddress)
+    throw new CustomError("Trade Error", "This address cannot cancle the Trade", status.PERMISSION_DENIED);
 
   const cancledTrade = await db.trade.update({
     where: {

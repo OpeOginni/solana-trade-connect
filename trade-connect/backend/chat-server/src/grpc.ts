@@ -104,12 +104,17 @@ export async function _getGRPCServer() {
   // GRPC SERVER SETUP
   grpcServer.addService(grpcPackage.CompanyService.service, {
     InitCompanyInfo: async (req, res) => {
-      const dto = saveCompanySchema.parse(req.request);
-      console.log(dto);
-      await initializeCompany(dto);
+      try {
+        const dto = saveCompanySchema.parse(req.request);
+        console.log(dto);
 
-      console.log("Has Created the Company Info to Redis");
-      res(null, { success: true });
+        await initializeCompany(dto);
+
+        res(null, { success: true });
+      } catch (err: any) {
+        console.error(err);
+        res(err, null);
+      }
     },
   } as CompanyServiceHandlers);
 

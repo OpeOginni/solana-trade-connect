@@ -38,9 +38,11 @@ model Trade {
 }
 
 model AccessKey {
-  accessKey String   @id @unique
+  accessKey String   @id  
   company   Company  @relation(fields: [companyId], references: [id])
   companyId String   @unique
+
+  @@unique([companyId, accessKey])
 }
 
 enum Status {
