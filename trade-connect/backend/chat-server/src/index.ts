@@ -16,11 +16,11 @@ const GRPC_PORT = parseInt(process.env.GRPC_PORT || "8081");
 const GRPC_HOST = process.env.GRPC_HOST || "0.0.0.0";
 
 async function main() {
-  const app = await buildServer();
+  const server = await buildServer();
   const grpcServer = await _getGRPCServer();
 
   try {
-    app.listen(PORT, HOST, () => {
+    server.listen(PORT, HOST, () => {
       console.log(`Chat Server started at http://${HOST}:${PORT}`);
     });
 

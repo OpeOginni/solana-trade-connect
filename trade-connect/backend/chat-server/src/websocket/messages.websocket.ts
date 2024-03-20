@@ -1,25 +1,10 @@
 import { Socket } from "socket.io";
 
-import { NewMessageInputDto, newMessageSchema } from "../types/message.types";
+import { NewMessageInputDto, newMessageSchema } from "../types/chat.types";
 import { publisher } from "../redis";
 import { SaveCompanyDto } from "../types/company.types";
-
-const ONLINE_COUNT_UPDATED_CHANNEL = "company_online_count_updated";
-const NEW_MESSAGE_CHANNEL = "chat:new_message";
-
-const CHAT_KEY = (companyId: string, walletAddress1: string, walletAddress2: string) => {
-  // Sort the wallet addresses
-  const [firstAddress, secondAddress] = [walletAddress1, walletAddress2].sort();
-  // gives a definite key for the chat
-  return `chat:${companyId}:${firstAddress}:${secondAddress}`;
-};
-
-const USER_KEY = (companyId: string, userAddress: string) => `company:${companyId}:user:${userAddress}`;
-const COMPANY_KEY = (companyId: string) => `company:${companyId}`;
-const COMPANY_ONLINE_COUNT_KEY = (companyId: string) => `chat:company:${companyId}:connection_count`;
-
-const USER_RECENT_CHAT_LIST = (companyId: string, userAddress: string) => `recent_chats:${companyId}:user:${userAddress}`;
-const UNREAD_CHAT_LIST = (companyId: string, userAddress: string) => `unread_messages:${companyId}:user:${userAddress}`;
+import { CHAT_KEY, COMPANY_KEY, COMPANY_ONLINE_COUNT_KEY, UNREAD_CHAT_LIST, USER_KEY, USER_RECENT_CHAT_LIST } from "../redis/keys";
+import { NEW_MESSAGE_CHANNEL, ONLINE_COUNT_UPDATED_CHANNEL } from "../redis/channels";
 
 export async function initializeCompany(dto: SaveCompanyDto) {
   await publisher.set(COMPANY_ONLINE_COUNT_KEY(dto.companyId), 0);
@@ -31,8 +16,8 @@ export async function initializeCompany(dto: SaveCompanyDto) {
 }
 
 export async function initializeUser(socket: Socket) {
-  const companyId = socket.data.user as string;
-  const userAddress = socket.data.userAddress as string;
+  const companyId = socket.data.user.companyId as string;
+  const userAddress = socket.data.user.userAddress as string;
 
   await publisher.hset(USER_KEY(companyId, userAddress), {
     online: true,
@@ -51,8 +36,8 @@ export async function initializeUser(socket: Socket) {
 }
 
 export async function disconnectUser(socket: Socket) {
-  const companyId = socket.data.user as string;
-  const userAddress = socket.data.userAddress as string;
+  const companyId = socket.data.user.companyId as string;
+  const userAddress = socket.data.user.userAddress as string;
 
   const decrResult = await publisher.decr(COMPANY_ONLINE_COUNT_KEY(companyId));
   await publisher.publish(ONLINE_COUNT_UPDATED_CHANNEL, JSON.stringify({ companyId, count: decrResult }));
@@ -65,8 +50,9 @@ export async function disconnectUser(socket: Socket) {
 }
 
 export async function sendMessage(socket: Socket, newMessage: NewMessageInputDto) {
-  const companyId = socket.data.user as string;
-  const userAddress = socket.data.userAddress as string;
+  const companyId = socket.data.user.companyId as string;
+  const userAddress = socket.data.user.userAddress as string;
+
   const message = newMessageSchema.parse(newMessage);
 
   const reciever = await publisher.hgetall(`company:${companyId}:user:${message.toAddress}`);

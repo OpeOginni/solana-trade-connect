@@ -21,11 +21,5 @@ export function getGrpcClient(host: string, serverPort: number) {
 export function getGrpcServer() {
   const server = new grpc.Server();
 
-  // server.addService(grpcPackage.CompanyService.service, {
-  //   InitCompanyInfo: (req, res) => {
-  //     console.log(req, res);
-  //   },
-  // } as CompanyServiceHandlers);
-
   return { server, grpc, grpcPackage };
 }

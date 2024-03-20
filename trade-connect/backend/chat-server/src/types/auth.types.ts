@@ -5,3 +5,5 @@ export const decodedTokenSchema = z.object({
   companyId: z.string(),
   userAddress: z.string(),
 });
+
+export type DecodedTokenDto = z.infer<typeof decodedTokenSchema>;

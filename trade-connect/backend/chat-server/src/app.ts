@@ -1,18 +1,20 @@
 import express from "express";
 import { Server } from "socket.io";
-import http from "http";
+import { createServer } from "http";
 import helmet from "helmet";
 import dotenv from "dotenv";
 import cors, { CorsOptions } from "cors";
 
 import { getHealthCheck } from "./controllers/health-check.controller";
 import { disconnectUser, initializeUser, sendMessage } from "./websocket/messages.websocket";
-import { NewMessageDto } from "./types/message.types";
+import { NewMessageDto } from "./types/chat.types";
 import { setupRedisSubscriptions } from "./redis/redisSubscription";
 import { acceptTrade, cancleTrade, createTrade, rejectTrade, updateTrade } from "./websocket/trades.websocket";
 import { InitializeTradeDto, UpdateTradeItemsDto, UpdateTradeStatusDto } from "./types/trade.types";
 import socketErrorHandler from "./lib/emitError";
 import { verifyUserToken } from "./lib/auth";
+import { getUserChat } from "./controllers/chat.controller";
+import chatRouter from "./routes/chat.route";
 
 dotenv.config();
 
@@ -29,12 +31,18 @@ export default async function buildServer() {
 
   app.use(helmet());
   app.use(express.json());
-  app.use(cors(corsOptions));
+  // app.use(cors(corsOptions));
+  app.use(cors());
 
-  const server = http.createServer(app);
+  const server = createServer(app);
 
   const io = new Server(server, {
-    cors: corsOptions,
+    cors: {
+      origin: ["*"],
+      methods: ["GET", "POST"],
+      allowedHeaders: ["token"],
+      // credentials: true,
+    },
   });
 
   io.use((socket, next) => {
@@ -44,7 +52,9 @@ export default async function buildServer() {
     try {
       const decoded = verifyUserToken(token);
       socket.data.user = decoded;
+      next();
     } catch (e) {
+      console.log(e);
       next(new Error("Authentication error"));
     }
   });
@@ -55,7 +65,7 @@ export default async function buildServer() {
     await initializeUser(socket);
 
     // MESSAGE
-    io.on("new_message", async (newMessage: NewMessageDto) => {
+    socket.on("new_message", async (newMessage: NewMessageDto) => {
       try {
         await sendMessage(socket, newMessage);
       } catch (err: any) {
@@ -64,7 +74,7 @@ export default async function buildServer() {
     });
 
     // TRADE
-    io.on("create_trade", async (newTrade: InitializeTradeDto) => {
+    socket.on("create_trade", async (newTrade: InitializeTradeDto) => {
       try {
         await createTrade(socket, newTrade);
       } catch (err: any) {
@@ -72,7 +82,7 @@ export default async function buildServer() {
       }
     });
 
-    io.on("update_trade_items", async (update: UpdateTradeItemsDto) => {
+    socket.on("update_trade_items", async (update: UpdateTradeItemsDto) => {
       try {
         await updateTrade(socket, update);
       } catch (err: any) {
@@ -80,7 +90,7 @@ export default async function buildServer() {
       }
     });
 
-    io.on("accept_trade", async (dto: UpdateTradeStatusDto) => {
+    socket.on("accept_trade", async (dto: UpdateTradeStatusDto) => {
       try {
         await acceptTrade(socket, dto);
       } catch (err: any) {
@@ -88,7 +98,7 @@ export default async function buildServer() {
       }
     });
 
-    io.on("reject_trade", async (dto: UpdateTradeStatusDto) => {
+    socket.on("reject_trade", async (dto: UpdateTradeStatusDto) => {
       try {
         await rejectTrade(socket, dto);
       } catch (err: any) {
@@ -96,7 +106,7 @@ export default async function buildServer() {
       }
     });
 
-    io.on("cancle_trade", async (dto: UpdateTradeStatusDto) => {
+    socket.on("cancle_trade", async (dto: UpdateTradeStatusDto) => {
       try {
         await cancleTrade(socket, dto);
       } catch (err: any) {
@@ -105,16 +115,18 @@ export default async function buildServer() {
     });
 
     // DISCONNECT
-    io.on("disconnect", async () => {
+    socket.on("disconnect", async () => {
       console.log("Client Disconnected");
 
       await disconnectUser(socket);
     });
   });
 
-  setupRedisSubscriptions(io);
+  await setupRedisSubscriptions(io);
+
+  app.use("/api/v1/chats", chatRouter);
 
   app.get("/healthcheck", getHealthCheck);
 
-  return app;
+  return server;
 }

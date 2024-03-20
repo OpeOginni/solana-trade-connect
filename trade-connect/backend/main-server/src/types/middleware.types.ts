@@ -2,8 +2,6 @@ import z from "zod";
 
 export const companyAccessAuthMiddlewareSchema = z.object({
   companyId: z.string().uuid(),
-  accessKey: z.string().length(16),
+  accessKey: z.string().length(32),
 });
-export type CompanyAccessAuthMiddlewareDto = z.infer<
-  typeof companyAccessAuthMiddlewareSchema
->;
+export type CompanyAccessAuthMiddlewareDto = z.infer<typeof companyAccessAuthMiddlewareSchema>;

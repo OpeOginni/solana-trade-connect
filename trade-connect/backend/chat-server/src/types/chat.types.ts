@@ -11,10 +11,17 @@ export const newMessageSchema = z.object({
 
 export const storedUserSchema = z.object({
   userAddress: z.string(),
-  companyId: z.string(),
+  companyId: z.string().uuid(),
   online: z.boolean(),
+});
+
+export const getUserChatSchema = z.object({
+  userAddress: z.string(),
+  companyId: z.string().uuid(),
+  recepientAddress: z.string(),
 });
 
 export type NewMessageInputDto = z.input<typeof newMessageSchema>;
 export type NewMessageDto = z.infer<typeof newMessageSchema>;
 export type StoredUserDto = z.infer<typeof storedUserSchema>;
+export type GetUserChatDto = z.infer<typeof getUserChatSchema>;

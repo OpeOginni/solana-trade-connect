@@ -4,14 +4,10 @@ import { companyAccessAuthMiddlewareSchema } from "../types/middleware.types";
 import CustomError from "../lib/customError";
 import errorHandler from "../lib/errorHandler";
 
-export async function accessKeyAuthMiddleware(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
+export async function accessKeyAuthMiddleware(req: Request, res: Response, next: NextFunction) {
   try {
     const accessKey = req.headers["trade-connect-access-key"];
-    const companyId = req.headers["trade-connect-companyId"];
+    const companyId = req.headers["trade-connect-company-id"];
 
     const dto = companyAccessAuthMiddlewareSchema.parse({
       accessKey,
@@ -24,19 +20,9 @@ export async function accessKeyAuthMiddleware(
       },
     });
 
-    if (!storedAccessKey)
-      throw new CustomError(
-        "Authentication Error",
-        "Invalid Access Key or Company ID",
-        401
-      );
+    if (!storedAccessKey) throw new CustomError("Authentication Error", "Invalid Access Key or Company ID", 401);
 
-    if (storedAccessKey.companyId !== companyId)
-      throw new CustomError(
-        "Authentication Error",
-        "Invalid Access Key or Company ID",
-        401
-      );
+    if (storedAccessKey.companyId !== companyId) throw new CustomError("Authentication Error", "Invalid Access Key or Company ID", 401);
 
     next();
   } catch (err: any) {
