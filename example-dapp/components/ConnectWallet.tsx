@@ -11,15 +11,10 @@ const ConnectWalletButton = () => {
   const { publicKey, sendTransaction, connected, connecting } = useWallet();
 
   useEffect(() => {
-    if (connected) {
-      //   router.push("/dashboard");
-      console.log("Connected");
+    if (!connecting && connected) {
+      router.push("/dashboard");
+      // console.log("Connected");
       console.log(publicKey?.toString());
-    }
-
-    if (!connected && !connecting) {
-      //   router.push("/");
-      console.log("Not Connected");
     }
   }, [connecting, connected]);
 
