@@ -49,10 +49,22 @@ export async function disconnectUser(socket: Socket) {
   });
 }
 
-export async function sendMessage(socket: Socket, newMessage: NewMessageInputDto) {
+export async function getRecentChats(socket: Socket) {
   const companyId = socket.data.user.companyId as string;
   const userAddress = socket.data.user.userAddress as string;
 
+  const recentChatList = await publisher.hgetall(USER_RECENT_CHAT_LIST(companyId, userAddress));
+  socket.emit("recent_chat_list", recentChatList);
+}
+
+export async function sendMessage(socket: Socket, newMessage: NewMessageInputDto) {
+  console.log("Sending Message");
+  console.log(newMessage);
+
+  const companyId = socket.data.user.companyId as string;
+  const userAddress = socket.data.user.userAddress as string;
+
+  newMessage.fromAddress = userAddress;
   const message = newMessageSchema.parse(newMessage);
 
   const reciever = await publisher.hgetall(`company:${companyId}:user:${message.toAddress}`);
@@ -70,6 +82,7 @@ export async function sendMessage(socket: Socket, newMessage: NewMessageInputDto
 
   // Update unread messages for recipient
   await incrementUnreadMessages(companyId, message.toAddress, userAddress, message.message);
+  return message;
 }
 
 async function updateRecentChats(companyId: string, userAddress1: string, userAddress2: string) {

@@ -23,6 +23,7 @@ export async function createTrade(socket: Socket, newTrade: InitializeTradeDto) 
   const response = await createTradeGRPC(trade);
 
   const newMessage: NewMessageInputDto = {
+    fromAddress: trade.tradeCreatorAddress,
     toAddress: trade.tradeRecipientAddress,
     message: `[TRADE]:${response.tradeId}`,
   };
@@ -40,6 +41,7 @@ export async function updateTrade(socket: Socket, updatedItems: UpdateTradeItems
   const response = await updateTradeItemsGRPC(update);
 
   const newMessage: NewMessageInputDto = {
+    fromAddress: userAddress,
     toAddress: response.otherUserAddress!,
     message: `[TRADE]:${response.tradeId}`,
   };
@@ -57,6 +59,7 @@ export async function acceptTrade(socket: Socket, updatedItems: UpdateTradeStatu
   const response = await acceptTradeGRPC(update);
 
   const newMessage: NewMessageInputDto = {
+    fromAddress: userAddress,
     toAddress: response.otherUserAddress!,
     message: `[TRADE]:${response.tradeId}`,
   };
@@ -75,6 +78,7 @@ export async function rejectTrade(socket: Socket, updatedItems: UpdateTradeStatu
   const response = await rejectTradeGRPC(update);
 
   const newMessage: NewMessageInputDto = {
+    fromAddress: userAddress,
     toAddress: response.otherUserAddress!,
     message: `[TRADE]:${response.tradeId}`,
   };
@@ -92,6 +96,7 @@ export async function cancleTrade(socket: Socket, updatedItems: UpdateTradeStatu
   const response = await cancleTradeGRPC(update);
 
   const newMessage: NewMessageInputDto = {
+    fromAddress: userAddress,
     toAddress: response.otherUserAddress!,
     message: `[TRADE]:${response.tradeId}`,
   };

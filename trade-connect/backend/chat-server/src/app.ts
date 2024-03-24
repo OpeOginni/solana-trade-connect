@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 import cors, { CorsOptions } from "cors";
 
 import { getHealthCheck } from "./controllers/health-check.controller";
-import { disconnectUser, initializeUser, sendMessage } from "./websocket/messages.websocket";
+import { disconnectUser, initializeUser, sendMessage, getRecentChats } from "./websocket/messages.websocket";
 import { NewMessageDto } from "./types/chat.types";
 import { setupRedisSubscriptions } from "./redis/redisSubscription";
 import { acceptTrade, cancleTrade, createTrade, rejectTrade, updateTrade } from "./websocket/trades.websocket";
@@ -65,9 +65,18 @@ export default async function buildServer() {
     await initializeUser(socket);
 
     // MESSAGE
-    socket.on("new_message", async (newMessage: NewMessageDto) => {
+    socket.on("new_message", async (newMessage: NewMessageDto, callback) => {
       try {
-        await sendMessage(socket, newMessage);
+        const message = await sendMessage(socket, newMessage);
+        callback(message);
+      } catch (err: any) {
+        socketErrorHandler(socket, err);
+      }
+    });
+
+    socket.on("get_recent_chats", async () => {
+      try {
+        await getRecentChats(socket);
       } catch (err: any) {
         socketErrorHandler(socket, err);
       }
