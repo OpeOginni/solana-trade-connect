@@ -13,8 +13,8 @@ import { sendMessage } from "./messages.websocket";
 import { NewMessageInputDto } from "../types/chat.types";
 
 export async function createTrade(socket: Socket, newTrade: InitializeTradeDto) {
-  const companyId = socket.data.user as string;
-  const userAddress = socket.data.userAddress as string;
+  const companyId = socket.data.user.companyId as string;
+  const userAddress = socket.data.user.userAddress as string;
 
   newTrade.companyId = companyId;
   newTrade.tradeCreatorAddress = userAddress;
@@ -32,8 +32,8 @@ export async function createTrade(socket: Socket, newTrade: InitializeTradeDto) 
 }
 
 export async function updateTrade(socket: Socket, updatedItems: UpdateTradeItemsDto) {
-  const companyId = socket.data.user as string;
-  const userAddress = socket.data.userAddress as string;
+  const companyId = socket.data.user.companyId as string;
+  const userAddress = socket.data.user.userAddress as string;
 
   updatedItems.updaterAddress = userAddress;
   const update = updateTradeItemsSchema.parse(updatedItems);
@@ -50,8 +50,8 @@ export async function updateTrade(socket: Socket, updatedItems: UpdateTradeItems
 }
 
 export async function acceptTrade(socket: Socket, updatedItems: UpdateTradeStatusDto) {
-  const companyId = socket.data.user as string;
-  const userAddress = socket.data.userAddress as string;
+  const companyId = socket.data.user.companyId as string;
+  const userAddress = socket.data.user.userAddress as string;
 
   updatedItems.updaterAddress = userAddress;
   const update = updateTradeStatusSchema.parse(updatedItems);
@@ -68,8 +68,8 @@ export async function acceptTrade(socket: Socket, updatedItems: UpdateTradeStatu
 }
 
 export async function rejectTrade(socket: Socket, updatedItems: UpdateTradeStatusDto) {
-  const companyId = socket.data.user as string;
-  const userAddress = socket.data.userAddress as string;
+  const companyId = socket.data.user.companyId as string;
+  const userAddress = socket.data.user.userAddress as string;
 
   updatedItems.updaterAddress = userAddress;
 
@@ -87,8 +87,8 @@ export async function rejectTrade(socket: Socket, updatedItems: UpdateTradeStatu
 }
 
 export async function cancleTrade(socket: Socket, updatedItems: UpdateTradeStatusDto) {
-  const companyId = socket.data.user as string;
-  const userAddress = socket.data.userAddress as string;
+  const companyId = socket.data.user.companyId as string;
+  const userAddress = socket.data.user.userAddress as string;
 
   updatedItems.updaterAddress = userAddress;
   const update = updateTradeStatusSchema.parse(updatedItems);
