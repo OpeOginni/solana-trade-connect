@@ -1,6 +1,7 @@
 import { Server } from "socket.io";
 import { subscriber } from ".";
 import { COMPANY_ONLINE_COUNT_UPDATED_CHANNEL, NEW_MESSAGE_CHANNEL, ONLINE_COUNT_UPDATED_CHANNEL, USER_NEW_MESSAGE_CHANNEL } from "./channels";
+import { NewMessageDto } from "../types/chat.types";
 
 export async function setupRedisSubscriptions(io: Server) {
   // REDIS SUBSCRIBERS
@@ -37,13 +38,11 @@ export async function setupRedisSubscriptions(io: Server) {
     }
 
     if (channel === NEW_MESSAGE_CHANNEL) {
-      const { companyId, recipientAddress, senderAddress, message } = JSON.parse(text); // Parse the JSON string
+      const { companyId, messageObject }: { companyId: string; messageObject: NewMessageDto } = JSON.parse(text); // Parse the JSON string
 
+      console.log(`Send EVENT TO ${USER_NEW_MESSAGE_CHANNEL(companyId, messageObject.toAddress)}`);
       // The specific user from a specific CompanyId will be listening to get newMessages (only get sent when they are online)
-      io.emit(USER_NEW_MESSAGE_CHANNEL(companyId, recipientAddress), {
-        sender: senderAddress,
-        message: message,
-      });
+      io.emit(USER_NEW_MESSAGE_CHANNEL(companyId, messageObject.toAddress), messageObject);
     }
   });
 }

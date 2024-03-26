@@ -15,7 +15,12 @@ export async function getUserChat(req: Request, res: Response) {
       companyId: userPayload.companyId,
     });
 
-    const chats = await getUserChatService(dto);
+    const chatsStringArray = await getUserChatService(dto);
+
+    // Parse for users before sending back
+
+    // TODO: make use of REDIS JSON tool to make sure saved data is JSON not stringified JSON
+    const chats = chatsStringArray.map((chat) => JSON.parse(chat));
     return res.status(200).json({ success: true, chats });
   } catch (err: any) {
     return errorHandler(err, req, res);

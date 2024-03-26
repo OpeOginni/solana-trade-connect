@@ -1,6 +1,7 @@
 import z from "zod";
 
 export const newMessageSchema = z.object({
+  fromAddress: z.string(),
   toAddress: z.string(),
   message: z.string(),
   timestamp: z
