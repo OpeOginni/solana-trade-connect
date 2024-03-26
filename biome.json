@@ -1,0 +1,18 @@
+{
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "suspicious": {
+        "noCommentText": "off"
+      },
+
+      "style": {
+        "noUnusedTemplateLiteral": "off",
+        "useImportType": "off"
+      }
+    }
+  },
+  "parse": {
+    "enabled": false
+  }
+}
