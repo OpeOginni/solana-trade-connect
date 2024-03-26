@@ -1,6 +1,6 @@
 import { Socket } from "socket.io";
 
-import { NewMessageInputDto, newMessageSchema } from "../types/chat.types";
+import { NewMessageDto, NewMessageInputDto, newMessageSchema } from "../types/chat.types";
 import { publisher } from "../redis";
 import { SaveCompanyDto } from "../types/company.types";
 import { CHAT_KEY, COMPANY_KEY, COMPANY_ONLINE_COUNT_KEY, UNREAD_CHAT_LIST, USER_KEY, USER_RECENT_CHAT_LIST } from "../redis/keys";
@@ -81,7 +81,7 @@ export async function sendMessage(socket: Socket, newMessage: NewMessageInputDto
   await updateRecentChats(companyId, userAddress, message.toAddress);
 
   // Update unread messages for recipient
-  await incrementUnreadMessages(companyId, message.toAddress, userAddress, message.message);
+  await incrementUnreadMessages(companyId, message);
   return message;
 }
 
@@ -90,16 +90,16 @@ async function updateRecentChats(companyId: string, userAddress1: string, userAd
   await publisher.hset(USER_RECENT_CHAT_LIST(companyId, userAddress2), userAddress1, new Date().toISOString());
 }
 
-async function incrementUnreadMessages(companyId: string, recipientAddress: string, senderAddress: string, message: string) {
+async function incrementUnreadMessages(companyId: string, messageObject: NewMessageDto) {
   // Check if the recipient is online
-  const recipientOnline = await publisher.hget(USER_KEY(companyId, recipientAddress), "online");
+  const recipientOnline = await publisher.hget(USER_KEY(companyId, messageObject.toAddress), "online");
 
   if (recipientOnline === "true") {
     // If the recipient is Online Publish a new message that will send a socket responese to that specific user
-    publisher.publish(NEW_MESSAGE_CHANNEL, JSON.stringify({ companyId, recipientAddress, senderAddress, message }));
+    publisher.publish(NEW_MESSAGE_CHANNEL, JSON.stringify({ companyId, messageObject }));
     return;
   }
 
   // Increment unread messages count for the recipient
-  await publisher.hincrby(UNREAD_CHAT_LIST(companyId, recipientAddress), senderAddress, 1);
+  await publisher.hincrby(UNREAD_CHAT_LIST(companyId, messageObject.toAddress), messageObject.fromAddress, 1);
 }

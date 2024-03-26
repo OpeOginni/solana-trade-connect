@@ -38,11 +38,18 @@ export async function getWebsocketJWT(userAddress: string) {
   }
 }
 
+export type NewMessageDto = {
+  message: string;
+  fromAddress: string;
+  toAddress: string;
+  timestamp: string;
+};
+
 export async function getUserChat(userAddress: string, recipientAddress: string) {
   try {
     const token = cookies().get("trade-connect-token");
     if (!token) throw new Error("No token");
-    const response = await chatServerApi.get<{ success: true; chats: string[] }>(`/chats/${recipientAddress}`, {
+    const response = await chatServerApi.get<{ success: true; chats: NewMessageDto[] }>(`/chats/${recipientAddress}`, {
       headers: {
         Authorization: `Bearer ${token.value}`,
       },

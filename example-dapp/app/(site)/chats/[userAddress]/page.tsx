@@ -1,5 +1,5 @@
 "use client";
-import { getUserChat } from "@/actions";
+import { NewMessageDto, getUserChat } from "@/actions";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
@@ -8,6 +8,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import MessageBox from "@/components/MessageBox";
 import useSocket from "@/providers/socket.provider";
 import { useSocketContext } from "@/providers/useSocketContext";
+import NFTBox from "@/components/NftBox";
 
 const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID as string;
 
@@ -21,31 +22,35 @@ export default function ChatSessionPage() {
 
   const socket = useSocketContext();
 
-  const [messages, setMessages] = useState<string[]>([]);
+  const [messages, setMessages] = useState<NewMessageDto[]>([]);
   const [message, setMessage] = useState("");
 
-  function newMessageObject(message: string) {
-    return JSON.stringify({
-      message,
-      timestamp: new Date().toISOString(),
-      fromAddress: publicKey?.toBase58(),
-      toAddress: params.userAddress,
-    });
-  }
+  const [myNFTBox, setMyNFTBox] = useState<{ index: number; label: string }[]>([]);
+  const [otherNFTBox, setOtherNFTBox] = useState<{ index: number; label: string }[]>([]);
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
-    console.log("Snet Messahe");
+    console.log("Sent Messahe");
     if (message.trim() !== "") {
       socket?.emit(
         "new_message",
         { message: message, toAddress: params.userAddress },
         (returnedMessage: { message: string; fromAddress: string; toAddress: string; timestamp: string }) => {
           console.log(returnedMessage);
-          setMessages((prevMessages) => [...prevMessages, JSON.stringify(returnedMessage)]);
+          setMessages((prevMessages) => [...prevMessages, returnedMessage]);
         }
       );
       setMessage("");
+    }
+  };
+
+  const handleNftBoxClick = (index: number, label: string) => {
+    if (searchParams.get("suggestNFTs") == null) {
+      setMyNFTBox((prev) => (prev.some((item) => item.index === index) ? prev.filter((item) => item.index !== index) : [...prev, { index, label }]));
+    } else {
+      setOtherNFTBox((prev) =>
+        prev.some((item) => item.index === index) ? prev.filter((item) => item.index !== index) : [...prev, { index, label }]
+      );
     }
   };
 
@@ -82,20 +87,11 @@ export default function ChatSessionPage() {
     console.log(`Listening to ${channel}`);
     console.log(`Socket connected: ${socket?.connected}`);
 
-    socket?.on(channel, ({ sender, message }: { sender: string; message: string }) => {
+    socket?.on(channel, (messageObject: NewMessageDto) => {
       console.log("RECIVED MESSAGE");
-      const json = JSON.stringify({
-        message,
-        timestamp: new Date().toISOString(),
-        fromAddress: params.userAddress,
-        toAddress: publicKey?.toBase58(),
-      });
-      if (sender === params.userAddress) setMessages((prevMessages) => [...prevMessages, json]);
-    });
 
-    // return () => {
-    //   socket?.off(channel);
-    // };
+      if (messageObject.fromAddress === params.userAddress) setMessages((prevMessages) => [...prevMessages, messageObject]);
+    });
   }, [publicKey, socket]);
 
   return (
@@ -105,7 +101,7 @@ export default function ChatSessionPage() {
         {/* Chat window content */}
         <ScrollArea className="h-full border rounded-lg overflow-y-auto">
           {messages.map((message) => (
-            <MessageBox key={message} message={JSON.parse(message)} userAddress={publicKey?.toBase58()!} />
+            <MessageBox key={message.message} message={message} userAddress={publicKey?.toBase58()!} />
           ))}
         </ScrollArea>
         {/* Message input form */}
@@ -126,24 +122,16 @@ export default function ChatSessionPage() {
       <div className="grid grid-cols-2 p-4 w-2/3">
         <ScrollArea className="border border-black col-span-1 w-full ">
           <div className="grid grid-cols-4 gap-4 p-3">
-            {Array(20)
-              .fill(null)
-              .map((_, index) => (
-                <div key={index} className="flex justify-center items-center text-center aspect-[1] border border-gray-200 p-2">
-                  Simran {index + 1}
-                </div>
-              ))}
+            {myNFTBox.map((nft) => (
+              <NFTBox key={nft.index} index={nft.index} label={nft.label} onClick={handleNftBoxClick} />
+            ))}
           </div>
         </ScrollArea>
         <ScrollArea className="border border-black col-span-1 w-full">
           <div className="grid grid-cols-4 gap-4 p-3">
-            {Array(10)
-              .fill(null)
-              .map((_, index) => (
-                <div key={index} className="flex justify-center items-center text-center aspect-[1] border border-gray-200 p-2">
-                  Sophia {index + 1}
-                </div>
-              ))}
+            {otherNFTBox.map((nft) => (
+              <NFTBox key={nft.index} index={nft.index} label={nft.label} onClick={handleNftBoxClick} />
+            ))}
           </div>
         </ScrollArea>
 
@@ -153,7 +141,7 @@ export default function ChatSessionPage() {
               .fill(null)
               .map((_, index) => (
                 <div key={index} className="flex justify-center items-center text-center aspect-[1] border border-gray-200 p-2">
-                  Junky {index + 1}
+                  {searchParams.get("suggestNFTs") == null ? `MINE` : "OTHER"} {index + 1}
                 </div>
               ))}
           </div>
