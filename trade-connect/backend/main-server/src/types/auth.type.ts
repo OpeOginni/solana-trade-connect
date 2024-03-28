@@ -35,6 +35,10 @@ export const loginCompanyUserSchema = z.object({
   tokenExpiration: z.number().min(Date.now()).optional(),
 });
 
+export const decodedCompanyTokenSchema = z.object({
+  companyId: z.string().uuid(),
+});
+
 export type CreateCompanyDto = z.infer<typeof createCompanySchema>;
 export type SignInCompanyDto = z.infer<typeof signInCompanySchema>;
 export type UpdateWhitelistedCollectionsDto = z.infer<typeof updateWhitelistedCollectionSchema>;

@@ -1,8 +1,17 @@
 import { Router } from "express";
-import { addWhitelistCollection, createCompany, loginCompanyUser, removeWhitelistedCollection, loginCompany } from "../contollers/auth.controller";
-import { accessKeyAuthMiddleware } from "../middlewares/auth.middleware";
+import {
+  addWhitelistCollection,
+  createCompany,
+  loginCompanyUser,
+  removeWhitelistedCollection,
+  loginCompany,
+  getCompany,
+} from "../contollers/auth.controller";
+import { accessKeyAuthMiddleware, companyAuthMiddleware } from "../middlewares/auth.middleware";
 
 const companyRouter = Router();
+
+companyRouter.get("/", companyAuthMiddleware, getCompany);
 
 companyRouter.post("/", createCompany);
 

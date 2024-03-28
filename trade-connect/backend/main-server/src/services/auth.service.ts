@@ -1,6 +1,6 @@
 import { Company } from "@prisma/client";
 import db from "../db";
-import { compareSecret, hashSecret } from "../lib/auth";
+import { compareSecret, generateCompanyToken, hashSecret } from "../lib/auth";
 import { CreateCompanyDto, SignInCompanyDto, UpdateWhitelistedCollectionsDto } from "../types/auth.type";
 import CustomError from "../lib/customError";
 // import { initCompanyInfoGRPC } from "../grpc/client";
@@ -42,7 +42,9 @@ export async function signInCompanyService(dto: SignInCompanyDto) {
 
   //TODO: Send in JWT to be stored
 
-  return company;
+  const jwt = generateCompanyToken(company.id);
+
+  return { company, jwt };
 }
 
 export async function addWhitelistCollectionService(dto: UpdateWhitelistedCollectionsDto) {
@@ -101,4 +103,17 @@ export async function authenticateAccessKey(companyId: string, accessKey: string
 
   if (!access) return false;
   return true;
+}
+
+export async function getCompanyService(companyId: string) {
+  const company = await db.company.findUnique({
+    where: {
+      id: companyId,
+    },
+    select: {
+      accessKey: true,
+    },
+  });
+
+  return company;
 }
