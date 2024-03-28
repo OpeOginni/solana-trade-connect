@@ -16,10 +16,10 @@ pub mod escrow_simple {
     pub fn initialize(
         ctx: Context<Initialize>,
         escrow_id: String,
-        sender: Pubkey,
-        recipient: Pubkey,
-        sender_mint_tokens: Vec<Pubkey>,
-        recipient_mint_tokens: Vec<Pubkey>
+        trader_a: Pubkey,
+        trader_b: Pubkey,
+        a_mint_tokens: Vec<Pubkey>,
+        b_mint_tokens: Vec<Pubkey>
     ) -> Result<()> {
 
         let escrow_account = &mut ctx.accounts.escrow_account;
@@ -31,10 +31,10 @@ pub mod escrow_simple {
 
         escrow_account.init_escrow(
             escrow_id.clone(), 
-            sender, 
-            recipient, 
-            sender_mint_tokens,
-            recipient_mint_tokens,
+            trader_a, 
+            trader_b, 
+            a_mint_tokens,
+            b_mint_tokens,
             bump
         );
 
@@ -46,7 +46,11 @@ pub mod escrow_simple {
 
     pub fn deposit_individual(ctx: Context<Deposit>) -> Result<()> {
 
-        // sanity checks
+        let escrow_account = &mut ctx.accounts.escrow_account;
+
+        // security checks
+        //require!(escrow_account.state == Status::Initialized, );
+        
 
         let cpi_ctx = CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
@@ -99,10 +103,10 @@ pub mod escrow_simple {
 #[derive(Accounts)]
 #[instruction(
     escrow_id: String,
-    sender: Pubkey,
-    recipient: Pubkey,
-    sender_mint_tokens: Vec<Pubkey>,
-    recipient_mint_tokens: Vec<Pubkey>,
+    trader_a: Pubkey,
+    trader_b: Pubkey,
+    a_mint_tokens: Vec<Pubkey>,
+    b_mint_tokens: Vec<Pubkey>
 )]
 pub struct Initialize<'info> {
     #[account(mut)]
@@ -113,8 +117,8 @@ pub struct Initialize<'info> {
         seeds = [
             b"user-escrow".as_ref(),
             escrow_id.as_bytes(), 
-            sender.key().as_ref(),
-            recipient.key().as_ref(),
+            trader_a.key().as_ref(),
+            trader_b.key().as_ref(),
         ],
         bump,
         payer = admin, 
