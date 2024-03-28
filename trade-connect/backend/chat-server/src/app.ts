@@ -15,7 +15,8 @@ import socketErrorHandler from "./lib/emitError";
 import { verifyUserToken } from "./lib/auth";
 import { getUserChat } from "./controllers/chat.controller";
 import chatRouter from "./routes/chat.route";
-
+import companyRouter from "./routes/auth.route";
+import authRouter from "./routes/auth.route";
 dotenv.config();
 
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:3000";
@@ -134,6 +135,8 @@ export default async function buildServer() {
   await setupRedisSubscriptions(io);
 
   app.use("/api/v1/chats", chatRouter);
+
+  app.use("/api/v1/auth", authRouter);
 
   app.get("/healthcheck", getHealthCheck);
 
