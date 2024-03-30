@@ -34,19 +34,21 @@ export async function create_mint_nft_accounts(
         num_of_mint_accounts: number,
     ): Promise<PublicKey[]> {
 
-    let iter = Array(num_of_mint_accounts);
 
-    let mint_accounts = await Promise.all(iter.map(async (_) => {
-        return await splToken.createMint(
-            param.connection,
-            param.payer,
-            param.authority,
-            param.freezeAuthority,
-            0
-        );
-    }));
+    const mintAccounts: PublicKey[] = [];
 
-    return mint_accounts;
+    for (let i = 0; i < num_of_mint_accounts; i++) {
+    const mintAccount = await splToken.createMint(
+        param.connection,
+        param.payer,
+        param.authority,
+        param.freezeAuthority,
+        0
+    );
+    mintAccounts.push(mintAccount);
+    }
+
+    return mintAccounts;
 }
 
 export async function create_mutiple_associated_token_accounts(
@@ -61,6 +63,7 @@ export async function create_mutiple_associated_token_accounts(
             params.payer,
             account,
             params.owner,
+            false,
         );
     }));
 
@@ -134,12 +137,12 @@ export async function mutliple_freeze_mint(
                 null,
             ),
             // set authority to trader
-            splToken.createSetAuthorityInstruction(
-                account.mint_account,
-                payer.publicKey,
-                splToken.AuthorityType.AccountOwner,
-                new_mint_owner,
-            )
+            // splToken.createSetAuthorityInstruction(
+            //     account.mint_account,
+            //     payer.publicKey,
+            //     splToken.AuthorityType.AccountOwner,
+            //     new_mint_owner,
+            // )
         );
 
         return await web3.sendAndConfirmTransaction(connection, transaction, [payer]);
@@ -147,3 +150,35 @@ export async function mutliple_freeze_mint(
 
     return transaction_signatures;
 }
+
+// export async function deposit_batch_nfts(
+//     connection: Connection,
+//     depositor: Signer,
+//     accounts: IMintToAta[],
+// ): Promise<string[]> {
+//     let transaction_signatures = await Promise.all(accounts.map(async (account) => {
+
+//         let transaction = new Transaction();
+        
+//         transaction.add(
+//             // freeze mint
+//             splToken.createSetAuthorityInstruction(
+//                 account.mint_account,
+//                 depositor.publicKey,
+//                 splToken.AuthorityType.MintTokens,
+//                 null,
+//             ),
+//             // set authority to trader
+//             // splToken.createSetAuthorityInstruction(
+//             //     account.mint_account,
+//             //     payer.publicKey,
+//             //     splToken.AuthorityType.AccountOwner,
+//             //     new_mint_owner,
+//             // )
+//         );
+
+//         return await web3.sendAndConfirmTransaction(connection, transaction, [payer]);
+//     }));
+
+//     return transaction_signatures;
+// }
