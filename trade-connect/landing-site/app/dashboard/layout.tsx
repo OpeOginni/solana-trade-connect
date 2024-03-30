@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { authenticatedRequest } from "@/api-service/auth.api";
 import { redirect } from "next/navigation";
+import HeaderComponent from "@/components/Header";
 
 export const metadata: Metadata = {
   title: "Trade Connect | Dashboard",
@@ -25,5 +26,9 @@ export default async function DashboardLayout({
     redirect(`/`); // Navigate to new route
   }
 
-  return <main>{children}</main>;
+  return (
+    <main>
+      <HeaderComponent /> <div>{children}</div>
+    </main>
+  );
 }

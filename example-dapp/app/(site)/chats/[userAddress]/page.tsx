@@ -30,11 +30,11 @@ export default function ChatSessionPage() {
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
-    console.log("Sent Messahe");
+    console.log("Sent Message");
     if (message.trim() !== "") {
       socket?.emit(
         "new_message",
-        { message: message, toAddress: params.userAddress },
+        { message: message, toAddress: params.userAddress, fromAddress: publicKey?.toBase58() },
         (returnedMessage: { message: string; fromAddress: string; toAddress: string; timestamp: string }) => {
           console.log(returnedMessage);
           setMessages((prevMessages) => [...prevMessages, returnedMessage]);

@@ -17,6 +17,10 @@ const CHAT_GRPC_HOST = process.env.CHAT_GRPC_HOST || "0.0.0.0";
 const grpcClient = getGrpcClient(CHAT_GRPC_HOST, CHAT_GRPC_PORT);
 
 export async function initCompanyInfoGRPC(companyId: string, accessKey: string) {
+  console.log({
+    companyId,
+    accessKey,
+  });
   grpcClient.companyServiceClient.InitCompanyInfo(
     {
       companyId,

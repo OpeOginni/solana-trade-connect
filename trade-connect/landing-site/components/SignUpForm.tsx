@@ -7,21 +7,35 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormEvent, useState } from "react";
 import axios from "axios";
-
+import { useRouter } from "next/navigation";
 const baseUrl = process.env.NEXT_PUBLIC_MAIN_SERVER_BASE_URL;
 
 export function SignUpForm() {
+  const router = useRouter();
+
   const [companyName, setCompanyName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-
+    setIsLoading(true);
     try {
       const response = await axios.post(`${baseUrl}/api/v1/companies`, { companyName, email, password, whitelistedCollections: [] });
+
+      if (response.data?.success) {
+        alert("Account Created Now SignIN");
+        setIsLoading(false);
+        router.push("/login");
+      } else {
+        alert("There was a problem, please try again later");
+        setIsLoading(false);
+      }
       console.log(response.data);
-    } catch (error) {
+    } catch (error: any) {
+      if (error instanceof axios.AxiosError) return alert(error.response?.data.message);
+
       console.error(error);
     }
   };
@@ -49,8 +63,8 @@ export function SignUpForm() {
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
-            <Button type="submit" className="w-full">
-              Create an account
+            <Button disabled={isLoading} type="submit" className="w-full">
+              {isLoading ? "Creating Account..." : "Create an account"}
             </Button>
           </div>
           <div className="mt-4 text-center text-sm">

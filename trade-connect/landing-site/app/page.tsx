@@ -30,7 +30,11 @@ export default async function Home() {
           <div className="text-center">
             <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-5xl">Solana Trade Connect</h1>
 
-            <p className="mt-6 text-lg leading-8 text-gray-600 hover:cursor-pointer">
+            <h1 className="text-xl font-bold tracking-tight text-gray-900 sm:text-2xl py-4">
+              Integrate Chat, Trade and Swap Features easily into your Solana APPS and DAPPS
+            </h1>
+
+            <p className="mt-6 text-lg leading-8 text-gray-600 hover:cursor-pointer py-3">
               Check out the Project <span className="text-blue-700 underline">GITHUB</span> for setup examples.
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">

@@ -8,6 +8,14 @@ import CustomError from "../lib/customError";
 export async function createCompanyService(dto: CreateCompanyDto) {
   dto.password = await hashSecret(dto.password);
 
+  const exisitingCompany = await db.company.findUnique({
+    where: {
+      email: dto.email,
+    },
+  });
+
+  if (exisitingCompany) throw new CustomError("Sign Up Error", "Account already created with Email", 400);
+
   const newCompany: Company = await db.company.create({
     data: {
       email: dto.email,
@@ -38,7 +46,7 @@ export async function signInCompanyService(dto: SignInCompanyDto) {
     },
   });
 
-  if (!(await compareSecret(dto.password, company.password))) throw new CustomError("Sign In Error", "Incorrect Email or Password", 500);
+  if (!(await compareSecret(dto.password, company.password))) throw new CustomError("Sign In Error", "Incorrect Email or Password", 401);
 
   //TODO: Send in JWT to be stored
 
@@ -112,6 +120,7 @@ export async function getCompanyService(companyId: string) {
     },
     select: {
       accessKey: true,
+      companyName: true,
     },
   });
 

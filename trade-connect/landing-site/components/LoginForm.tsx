@@ -1,6 +1,4 @@
 "use client";
-import Link from "next/link";
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,21 +6,30 @@ import { Label } from "@/components/ui/label";
 import { FormEvent, useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
+import { useRouter } from "next/navigation";
 
 const baseUrl = process.env.NEXT_PUBLIC_MAIN_SERVER_BASE_URL;
 
 export function LoginForm() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-
+    setIsLoading(true);
     try {
-      const response = await axios.post(`${baseUrl}/api/v1/login`, { email, password });
-      console.log(response.data);
+      const response = await axios.post(`${baseUrl}/api/v1/companies/login`, { email, password });
       Cookies.set("access_token", response.data.jwt);
+      setIsLoading(false);
+      router.push("/dashboard");
     } catch (error) {
+      if (error instanceof axios.AxiosError) {
+        setIsLoading(false);
+        return alert(error.response?.data.message);
+      }
+
       console.error(error);
     }
   };
@@ -44,7 +51,10 @@ export function LoginForm() {
           </div>
         </CardContent>
         <CardFooter>
-          <Button className="w-full">Sign in</Button>
+          <Button disabled={isLoading} className="w-full">
+            {isLoading ? "Signing In..." : "Sign in"}
+            Sign in
+          </Button>
         </CardFooter>
       </form>
     </Card>
