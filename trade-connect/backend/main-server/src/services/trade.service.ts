@@ -1,9 +1,12 @@
 import { status } from "@grpc/grpc-js";
+import { Connection, PublicKey, Keypair } from "@solana/web3.js";
+import { AnchorProvider, setProvider, Program } from "@project-serum/anchor";
 
 import db from "../db";
 import CustomError from "../lib/customError";
 import { TradeStatus } from "../types/enums";
 import { InitializeTradeDto, UpdateTradeItemsDto, UpdateTradeStatusDto } from "../types/trade.types";
+import { Trade } from "@prisma/client";
 
 export async function initializeTradeService(dto: InitializeTradeDto) {
   const newTrade = await db.trade.create({
@@ -66,7 +69,9 @@ export async function acceptTradeService(dto: UpdateTradeStatusDto) {
     },
   });
 
-  return acceptedTrade;
+  const transactions = await acceptTradeSolanaService(trade)
+
+  return {acceptedTrade, transactions};
 }
 
 export async function rejectTradeService(dto: UpdateTradeStatusDto) {
@@ -119,4 +124,30 @@ export async function cancleTradeService(dto: UpdateTradeStatusDto) {
   });
 
   return cancledTrade;
+}
+
+export async function acceptTradeSolanaService(trade: Trade) {
+  const adminWallet = Keypair.fromSecretKey(Buffer.from(process.env.SOLANA_ADMIN_PRIVATE_KEY!, "base64"));
+
+  const connection = new Connection(process.env.SOLANA_DEVNET_RPC_URL!, "confirmed");
+
+  setProvider(AnchorProvider.env());
+
+  const idl = require("../lib/idl.json");
+  const programId = new PublicKey(process.env.SOLANA_PROGRAM_ID!);
+
+  const program = new Program(idl, programId);
+
+  await program.methods?.init()?.rpc?.();
+
+  const tradeCreatorAddress = trade.tradeCreatorAddress;
+  const tradeRecipientAddress = trade.tradeRecipientAddress;
+
+  return {
+    success: true,
+    transactions: {
+      tradeCreatorTransation: "",
+      tradeRecipientTransaction: "",
+    },
+  };
 }
