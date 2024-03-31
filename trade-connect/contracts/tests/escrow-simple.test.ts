@@ -164,8 +164,8 @@ describe("Escrow Program Unit Tests", () => {
       escrow_id: MOCK_ESCROW_ID,
       trader_a: trader_a.publicKey,
       trader_b: trader_b.publicKey,
-      trader_a_tokens: [trader_a.publicKey, trader_b.publicKey],
-      trader_b_tokens: [trader_b.publicKey, trader_a.publicKey],
+      trader_a_tokens: mint_accounts_a,
+      trader_b_tokens: mint_accounts_b,
     };
 
     // Add your test here.
@@ -335,10 +335,8 @@ describe("Escrow Program Unit Tests", () => {
     // convert list of vault ata to remaining accounts
     const a_remaining_accounts = await utils.ata_to_remaining_accounts(vaults_a_ata);
 
-    console.log()
-
     //update for A 
-    const tx_a = await program.methods.updateTraderDepositStatus(
+    await program.methods.updateTraderDepositStatus(
       MOCK_ESCROW_ID,
       trader_a.publicKey,
       trader_b.publicKey
@@ -354,10 +352,17 @@ describe("Escrow Program Unit Tests", () => {
     .remainingAccounts(a_remaining_accounts)
     .rpc();
 
+    const trader_a_status = await program.account.userEscrowState.fetch(trader_a_state);
+    expect(trader_a_status.state.hasOwnProperty('deposited')).to.be.true;
+
+    const escrow_state_after_one_deposit = await program.account.escrow.fetch(escrowPda);
+    expect(escrow_state_after_one_deposit.escrowState.hasOwnProperty('initialized')).to.be.true;
+
+
     //update for B
     const b_remaining_accounts = await utils.ata_to_remaining_accounts(vaults_b_ata);
 
-    const tx_b = await program.methods.updateTraderDepositStatus(
+    await program.methods.updateTraderDepositStatus(
       MOCK_ESCROW_ID,
       trader_b.publicKey,
       trader_a.publicKey
@@ -372,6 +377,13 @@ describe("Escrow Program Unit Tests", () => {
     .signers([admin_signer])
     .remainingAccounts(b_remaining_accounts)
     .rpc();
+
+    const trader_b_status = await program.account.userEscrowState.fetch(trader_b_state);
+    expect(trader_b_status.state.hasOwnProperty('deposited')).to.be.true;
+
+    // check to see if Escrow State is set to Deposited 
+    const escrow_state_after_both_deposit = await program.account.escrow.fetch(escrowPda);
+    expect(escrow_state_after_both_deposit.escrowState.hasOwnProperty('deposited')).to.be.true;
   })
 
   // TODO: create test where update does not happen and trader a withdraw fails

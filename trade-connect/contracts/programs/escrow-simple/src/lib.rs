@@ -106,7 +106,7 @@ pub mod escrow_simple {
                 from: ctx.accounts.vault_ata.to_account_info(),
                 mint: ctx.accounts.mint.to_account_info(),
                 to: ctx.accounts.initializer_ata.to_account_info(),
-                authority: ctx.accounts.escrow_account.to_account_info(),
+                authority: ctx.accounts.initializer.to_account_info(),
             },
         );
 
@@ -129,7 +129,7 @@ pub mod escrow_simple {
                 from: ctx.accounts.vault_ata.to_account_info(),
                 mint: ctx.accounts.mint.to_account_info(),
                 to: ctx.accounts.initializer_ata.to_account_info(),
-                authority: ctx.accounts.escrow_account.to_account_info(),
+                authority: ctx.accounts.initializer.to_account_info(),
             },
         );
 
@@ -146,8 +146,8 @@ pub mod escrow_simple {
         let depositor_state: &mut Account<'_, UserEscrowState> = &mut ctx.accounts.depositor_state;
         let withdrawer_state: &mut Account<'_, UserEscrowState> = &mut ctx.accounts.withdrawer_state;
 
-        assert!(escrow_account.escrow_state == Status::Initialized);
-        assert!(depositor_state.state != UserStatus::Deposited);
+        require!(escrow_account.escrow_state == Status::Initialized, EscrowErrors::EscrowNotInitialized);
+        require!(depositor_state.state != UserStatus::Deposited, EscrowErrors::DespositerAlreadDeposited);
 
         //let admin_key = &ctx.accounts.admin.key();
         let mint_keys =  depositor_state.trader_mint.clone();
@@ -172,9 +172,8 @@ pub mod escrow_simple {
             // get the derived token address
             // let derived_vault = anchor_spl::associated_token::get_associated_token_address(admin_key, mint_pubkey);
 
-            assert!(!token_account.is_frozen());
-            assert!(token_account.mint == *mint_pubkey);
-            assert!(token_account.amount == 1 as u64);
+            require!(token_account.mint == *mint_pubkey, EscrowErrors::MintAccountNotEq);
+            require!(token_account.amount == 1 as u64, EscrowErrors::AtaIsEmpty);
         }
 
         // update escrow state if deposited
@@ -219,11 +218,10 @@ pub mod escrow_simple {
             // get the derived token address
             // let derived_vault = anchor_spl::associated_token::get_associated_token_address(admin_key, mint_pubkey);
 
-            assert!(!token_account.is_frozen());
             // verifies if the ata account is the same as the sender's mint key
-            assert!(token_account.mint == *mint_pubkey);
+            require!(token_account.mint == *mint_pubkey, EscrowErrors::MintAccountNotEq);
             // verifies that the balance is 1 
-            assert!(token_account.amount == 1 as u64);
+            require!(token_account.amount == 1 as u64, EscrowErrors::AtaIsEmpty);
         }
 
         // update escrow state if deposited
@@ -479,11 +477,15 @@ pub struct UpdateDepositStatus<'info> {
     pub admin: Signer<'info>,
 
     #[account(
+        mut,
         seeds = [
             b"escrow".as_ref(),
             escrow_id.as_bytes(),
         ],
         bump = escrow_account.bump,
+        realloc = Escrow::LEN,
+        realloc::payer = admin,
+        realloc::zero = true,
     )]
     pub escrow_account: Account<'info, Escrow>,
 
@@ -532,11 +534,15 @@ pub struct UpdateWithdrawalStatus<'info> {
     pub admin: Signer<'info>,
 
     #[account(
+        mut,
         seeds = [
             b"escrow".as_ref(),
             escrow_id.as_bytes(),
         ],
         bump = escrow_account.bump,
+        realloc = Escrow::LEN,
+        realloc::payer = admin,
+        realloc::zero = true,
     )]
     pub escrow_account: Account<'info, Escrow>,
 
@@ -634,7 +640,7 @@ impl Escrow {
     }
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Copy)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Copy, Debug)]
 pub enum UserStatus {
     Initialized,
     Deposited,
@@ -642,7 +648,7 @@ pub enum UserStatus {
     Withdrew,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Copy)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Copy, Debug)]
 pub enum Status {
     Initialized,
     Deposited,

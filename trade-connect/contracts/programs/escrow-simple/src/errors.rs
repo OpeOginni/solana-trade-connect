@@ -14,5 +14,12 @@ pub enum EscrowErrors {
     OrderIsNotValid,
     #[msg("Error: Trader is not included in escrow")]
     TraderNotIncluded,
-    
+    #[msg("Error: Depositor already Deposited")]
+    DespositerAlreadDeposited,
+    #[msg("Error: Escrow has not been initialized")]
+    EscrowNotInitialized,
+    #[msg("Error: The Mint Account of the Vault Token is not the same as the Mint Pubkey listed in the Escrow Account")]
+    MintAccountNotEq,
+    #[msg("Error: The ATA is empty")]
+    AtaIsEmpty
 }
