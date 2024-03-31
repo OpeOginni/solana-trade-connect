@@ -10,6 +10,12 @@ import {
 import * as splToken from '@solana/spl-token';
 import { web3 } from "@coral-xyz/anchor";
 
+export interface AccountMeta {
+    pubkey: PublicKey,
+    isWritable: boolean,
+    isSigner: boolean,
+}
+
 export interface IMintTokenAccount {
     connection: Connection, 
     payer: Signer, 
@@ -38,14 +44,14 @@ export async function create_mint_nft_accounts(
     const mintAccounts: PublicKey[] = [];
 
     for (let i = 0; i < num_of_mint_accounts; i++) {
-    const mintAccount = await splToken.createMint(
-        param.connection,
-        param.payer,
-        param.authority,
-        param.freezeAuthority,
-        0
-    );
-    mintAccounts.push(mintAccount);
+        const mintAccount = await splToken.createMint(
+            param.connection,
+            param.payer,
+            param.authority,
+            param.freezeAuthority,
+            0
+        );
+        mintAccounts.push(mintAccount);
     }
 
     return mintAccounts;
@@ -115,6 +121,21 @@ export async function coupleMintToAtaInterface(
     }
 
     return coupled_accounts;
+}
+
+export async function ata_to_remaining_accounts(
+    associated_token_accounts: splToken.Account[]
+): Promise<AccountMeta[]> {
+
+let remaining_accounts = await Promise.all(associated_token_accounts.map((ata, index) => {
+            return {
+                pubkey: ata.address,
+                isWritable: false,
+                isSigner: false
+            } as AccountMeta;
+        }));
+
+return remaining_accounts;
 }
 
 export async function mutliple_freeze_mint(

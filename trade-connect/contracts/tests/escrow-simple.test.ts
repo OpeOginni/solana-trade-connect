@@ -8,13 +8,13 @@ import { Keypair, Connection, PublicKey, Transaction, SystemProgram } from "@sol
 import * as splToken from '@solana/spl-token';
 
 import * as utils from '../scripts/utils';
-import { expect } from "chai";
+import { assert, expect } from "chai";
 
 const SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID = new anchor.web3.PublicKey(
   'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL',
 );
 
-const MOCK_ESCROW_ID = "A1";
+const MOCK_ESCROW_ID = "escrow-id";
 
 describe("Escrow Program Unit Tests", () => {
 
@@ -24,12 +24,9 @@ describe("Escrow Program Unit Tests", () => {
 
   const program = anchor.workspace.EscrowSimple as Program<EscrowSimple>;
 
-  console.log(program.programId);
-
-  const program_owner = (program.provider as anchor.AnchorProvider).wallet;
-  
-  // payer
-  const payer = (provider.wallet as NodeWallet).payer;
+  // both admin_wallet and admin_signer have the same pubkey, they just are different types
+  const admin_wallet = (program.provider as anchor.AnchorProvider).wallet;
+  const admin_signer = (provider.wallet as NodeWallet).payer;
 
   let trader_a = anchor.web3.Keypair.generate();
   let trader_b = anchor.web3.Keypair.generate();
@@ -78,7 +75,7 @@ describe("Escrow Program Unit Tests", () => {
     // //////////////////////////////////
     let mint_account: utils.IMintTokenAccount = {
       connection: provider.connection,
-      payer: payer,
+      payer: admin_signer,
       authority: provider.wallet.publicKey,
       freezeAuthority: provider.wallet.publicKey,
     }
@@ -96,14 +93,14 @@ describe("Escrow Program Unit Tests", () => {
     //////////////////////////////////
     let ata_params_a: utils.IAssociatedTokenAccounts = {
       connection: provider.connection,
-      payer: payer,
+      payer: admin_signer,
       mint_accounts: mint_accounts_a,
       owner: trader_a.publicKey,
     }
 
     let ata_params_b: utils.IAssociatedTokenAccounts = {
       connection: provider.connection,
-      payer: payer,
+      payer: admin_signer,
       mint_accounts: mint_accounts_b,
       owner: trader_b.publicKey,
     }
@@ -126,7 +123,7 @@ describe("Escrow Program Unit Tests", () => {
 
     const transaction_signatures_a = await utils.mint_multiple_nfts(
         provider.connection,
-        payer,
+        admin_signer,
         mint_to_ata_a,
       );
 
@@ -134,7 +131,7 @@ describe("Escrow Program Unit Tests", () => {
 
     const transaction_signatures_b = await utils.mint_multiple_nfts(
       provider.connection,
-      payer,
+      admin_signer,
       mint_to_ata_b,
     );
 
@@ -145,7 +142,7 @@ describe("Escrow Program Unit Tests", () => {
     // //////////////////////////////////
     let freeze_a = await utils.mutliple_freeze_mint(
       provider.connection,
-      payer,
+      admin_signer,
       mint_to_ata_a,
       trader_a.publicKey
     );
@@ -153,7 +150,7 @@ describe("Escrow Program Unit Tests", () => {
 
     let freeze_b =await utils.mutliple_freeze_mint(
       provider.connection,
-      payer,
+      admin_signer,
       mint_to_ata_b,
       trader_b.publicKey
     );
@@ -183,9 +180,9 @@ describe("Escrow Program Unit Tests", () => {
       escrowAccount: escrowPda,
       traderAState: trader_a_state,
       traderBState: trader_b_state,
-      admin: program_owner.publicKey,
+      admin: admin_signer.publicKey,
     })
-    .signers([payer])
+    .signers([admin_signer])
     .rpc({skipPreflight:true});
     
     console.log("Your transaction signature", tx);
@@ -194,37 +191,251 @@ describe("Escrow Program Unit Tests", () => {
   });
 
   it("Trader A Deposits token into vault", async () => {
-    //////////////////////////////////
-    // Initialize Associated Token Accounts (Escrow Vaults)
-    //////////////////////////////////
-    let ata_params_a_vaults: utils.IAssociatedTokenAccounts = {
+
+    await Promise.all(trader_a_ata.map(async (trader_ata, index) => {
+
+      const traderAtaBalanceBefore = await splToken.getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        admin_signer,
+        trader_ata.mint,
+        trader_a.publicKey,
+      ).then((account) => Number(account.amount));
+
+      const vault_ata = await splToken.getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        admin_signer,
+        trader_ata.mint,
+        admin_signer.publicKey,
+      );
+  
+      const vaultAtaBalanceBefore = Number(vault_ata.amount);
+
+      expect(trader_ata.mint.toBase58() === vault_ata.mint.toBase58()).to.be.true;
+
+      const tx = await program.methods.depositIndividual(
+        MOCK_ESCROW_ID,
+      )
+      .accounts({
+        admin: admin_signer.publicKey,
+        initializer: trader_a.publicKey,
+        mint: vault_ata.mint,
+        escrowAccount: escrowPda,
+        traderState: trader_a_state,
+        vaultAta: vault_ata.address,
+        initializerAta: trader_ata.address,
+        tokenProgram: splToken.TOKEN_PROGRAM_ID,
+      })
+      .signers([admin_signer, trader_a])
+      .rpc();
+
+      // Get the balances of the relevant token accounts after the instruction
+      const traderAtaBalanceAfter = await splToken.getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        admin_signer,
+        trader_ata.mint,
+        trader_a.publicKey,
+      ).then((account) => Number(account.amount));
+
+      const vaultAtaBalanceAfter = await splToken.getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        admin_signer,
+        trader_ata.mint,
+        admin_signer.publicKey,
+      ).then((account) => Number(account.amount));
+
+      // Assert that the token transfer was successful
+      assert.strictEqual(
+        traderAtaBalanceBefore - traderAtaBalanceAfter,
+        vaultAtaBalanceAfter - vaultAtaBalanceBefore
+      );
+    }));
+  }); // Trader A Deposits token into vault
+
+  it("Trader B Deposits token into vault", async () => {
+
+    await Promise.all(trader_b_ata.map(async (trader_ata, index) => {
+
+      const traderAtaBalanceBefore = await splToken.getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        admin_signer,
+        trader_ata.mint,
+        trader_b.publicKey,
+      ).then((account) => Number(account.amount));
+
+      const vault_ata = await splToken.getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        admin_signer,
+        trader_ata.mint,
+        admin_signer.publicKey,
+      );
+  
+      const vaultAtaBalanceBefore = Number(vault_ata.amount);
+
+      expect(trader_ata.mint.toBase58() === vault_ata.mint.toBase58()).to.be.true;
+
+      const tx = await program.methods.depositIndividual(
+        MOCK_ESCROW_ID,
+      )
+      .accounts({
+        admin: admin_signer.publicKey,
+        initializer: trader_b.publicKey,
+        mint: vault_ata.mint,
+        escrowAccount: escrowPda,
+        traderState: trader_b_state,
+        vaultAta: vault_ata.address,
+        initializerAta: trader_ata.address,
+        tokenProgram: splToken.TOKEN_PROGRAM_ID,
+      })
+      .signers([admin_signer, trader_b])
+      .rpc();
+
+      // Get the balances of the relevant token accounts after the instruction
+      const traderAtaBalanceAfter = await splToken.getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        admin_signer,
+        trader_ata.mint,
+        trader_b.publicKey,
+      ).then((account) => Number(account.amount));
+
+      const vaultAtaBalanceAfter = await splToken.getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        admin_signer,
+        trader_ata.mint,
+        admin_signer.publicKey,
+      ).then((account) => Number(account.amount));
+
+      // Assert that the token transfer was successful
+      assert.strictEqual(
+        traderAtaBalanceBefore - traderAtaBalanceAfter,
+        vaultAtaBalanceAfter - vaultAtaBalanceBefore
+      );
+    }));
+  }); // Trader B Deposits token into vault
+
+  it("Admin Updates Deposit State", async() => {
+    
+    // get the list of vault atas
+    let vault_params_a: utils.IAssociatedTokenAccounts = {
       connection: provider.connection,
-      payer: payer,
+      payer: admin_signer,
       mint_accounts: mint_accounts_a,
-      owner: program_owner.publicKey,
+      owner: admin_signer.publicKey,
     }
 
-    // create ata for trader_a
-    vaults_a_ata = await utils.create_mutiple_associated_token_accounts(ata_params_a_vaults);
-    console.log(`vaults_a_ata :: `, vaults_a_ata);
-    console.log("");
+    let vault_params_b: utils.IAssociatedTokenAccounts = {
+      connection: provider.connection,
+      payer: admin_signer,
+      mint_accounts: mint_accounts_b,
+      owner: admin_signer.publicKey,
+    }
 
-    // expect(trader_a_ata[0].mint == vaults_a_ata[0].mint).to.be.true;
+    vaults_a_ata = await utils.create_mutiple_associated_token_accounts(vault_params_a);
+    vaults_b_ata = await utils.create_mutiple_associated_token_accounts(vault_params_b);
 
-    // // use the vaults as account params when depositing
-    // const tx = await program.methods.depositIndividual(
-    //   MOCK_ESCROW_ID,
-    // )
-    // .accounts({
-    //   initializer: trader_a.publicKey,
-    //   mint: vaults_a_ata[0].mint,
-    //   escrowAccount: escrowPda,
-    //   traderState: trader_a_state,
-    //   vaultAta: vaults_a_ata[0].address,
-    //   initializerAta: trader_a_ata[0].address
-    // })
-    // .signers([trader_a])
-    // .rpc({skipPreflight:true});
+    // convert list of vault ata to remaining accounts
+    const a_remaining_accounts = await utils.ata_to_remaining_accounts(vaults_a_ata);
+
+    console.log()
+
+    //update for A 
+    const tx_a = await program.methods.updateTraderDepositStatus(
+      MOCK_ESCROW_ID,
+      trader_a.publicKey,
+      trader_b.publicKey
+    )
+    .accounts({
+      admin: admin_signer.publicKey,
+      escrowAccount: escrowPda,
+      depositorState: trader_a_state,
+      withdrawerState: trader_b_state,
+      tokenProgram: splToken.TOKEN_PROGRAM_ID,
+    })
+    .signers([admin_signer])
+    .remainingAccounts(a_remaining_accounts)
+    .rpc();
+
+    //update for B
+    const b_remaining_accounts = await utils.ata_to_remaining_accounts(vaults_b_ata);
+
+    const tx_b = await program.methods.updateTraderDepositStatus(
+      MOCK_ESCROW_ID,
+      trader_b.publicKey,
+      trader_a.publicKey
+    )
+    .accounts({
+      admin: admin_signer.publicKey,
+      escrowAccount: escrowPda,
+      depositorState: trader_b_state,
+      withdrawerState: trader_a_state,
+      tokenProgram: splToken.TOKEN_PROGRAM_ID,
+    })
+    .signers([admin_signer])
+    .remainingAccounts(b_remaining_accounts)
+    .rpc();
   })
 
+  // TODO: create test where update does not happen and trader a withdraw fails
+  // example: Trader A depsoits but Trader B has not,
+  // example: Trader A and Trader B both deposit but UpdateState was not called
+  it("Trader A Withdraws token from vault (receiving Trader B's NFTs)", async () => {
+
+    // iterate through B mint accounts
+    await Promise.all(mint_accounts_b.map(async (mint_account, index) => {
+
+      const vault_ata = await splToken.getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        admin_signer,
+        mint_account,
+        admin_signer.publicKey,
+      );
+
+      const vaultAtaBalanceBefore = Number(vault_ata.amount);
+
+      const recipient_ata = await splToken.getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        admin_signer,
+        mint_account,
+        trader_a.publicKey,
+      );
+
+      const recipientAtaBalanceBefore = Number(recipient_ata.amount);
+
+      const tx = await program.methods.withdrawIndividual(
+        MOCK_ESCROW_ID,
+      )
+      .accounts({
+        admin: admin_signer.publicKey,
+        initializer: trader_a.publicKey,
+        mint: mint_account,
+        escrowAccount: escrowPda,
+        traderState: trader_a_state,
+        vaultAta: vault_ata.address,
+        initializerAta: recipient_ata.address,
+        tokenProgram: splToken.TOKEN_PROGRAM_ID,
+      })
+      .signers([admin_signer, trader_a])
+      .rpc();
+
+      // Get the balances of the relevant token accounts after the instruction
+      const vaultAtaBalanceAfter = await splToken.getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        admin_signer,
+        mint_account,
+        admin_signer.publicKey,
+      ).then((account) => Number(account.amount));
+
+      const recipientAtaBalanceAfter = await splToken.getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        admin_signer,
+        mint_account,
+        trader_a.publicKey,
+      ).then((account) => Number(account.amount));
+
+      // Assert that the token transfer was successful
+      assert.strictEqual(
+        vaultAtaBalanceBefore - vaultAtaBalanceAfter,
+        recipientAtaBalanceAfter - recipientAtaBalanceBefore
+      );
+    }));
+  }); // Trader B Deposits token into vault
 });

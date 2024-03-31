@@ -139,12 +139,12 @@ pub mod escrow_simple {
 
     // this is not optimized. can be imrpved greatly but im trying to rush atm
     // pass in the vault accounts in remaining accounts
-    pub fn update_trader_deposit_status(ctx: Context<UpdateDepositStatus>, _depositor: Pubkey, _trader_b: Pubkey) -> Result<()> {
+    pub fn update_trader_deposit_status(ctx: Context<UpdateDepositStatus>, escrow_id: String, _depositor: Pubkey, _withdrawer: Pubkey) -> Result<()> {
         
         let escrow_account = &mut ctx.accounts.escrow_account;
         
         let depositor_state: &mut Account<'_, UserEscrowState> = &mut ctx.accounts.depositor_state;
-        let trader_b_state: &mut Account<'_, UserEscrowState> = &mut ctx.accounts.trader_b_state;
+        let withdrawer_state: &mut Account<'_, UserEscrowState> = &mut ctx.accounts.withdrawer_state;
 
         assert!(escrow_account.escrow_state == Status::Initialized);
         assert!(depositor_state.state != UserStatus::Deposited);
@@ -180,14 +180,14 @@ pub mod escrow_simple {
         // update escrow state if deposited
         depositor_state.state = UserStatus::Deposited;
 
-        if depositor_state.state == UserStatus::Deposited && trader_b_state.state == UserStatus::Deposited {
+        if depositor_state.state == UserStatus::Deposited && withdrawer_state.state == UserStatus::Deposited {
             escrow_account.escrow_state = Status::Deposited;
         }
 
         Ok(())
     }
 
-    pub fn update_trader_withdrawal_status(ctx: Context<UpdateWithdrawalStatus>, _recipient: Pubkey, _sender: Pubkey) -> Result<()> {
+    pub fn update_trader_withdrawal_status(ctx: Context<UpdateWithdrawalStatus>, escrow_id: String, _recipient: Pubkey, _sender: Pubkey) -> Result<()> {
 
         let escrow_account = &mut ctx.accounts.escrow_account;
 
@@ -299,8 +299,14 @@ pub struct Initialize<'info> {
 )]
 pub struct Deposit<'info> {
     #[account(mut)]
+    pub admin: Signer<'info>,
+
+    #[account(mut)]
     pub initializer: Signer<'info>,
 
+    #[account(
+        mint::decimals = 0
+      )]
     pub mint: Account<'info, Mint>,
 
     #[account(
@@ -319,7 +325,7 @@ pub struct Deposit<'info> {
             escrow_id.as_bytes(), 
             initializer.key().as_ref(),
         ],
-        bump = escrow_account.bump,
+        bump = trader_state.bump,
         realloc = UserEscrowState::LEN,
         realloc::payer = initializer,
         realloc::zero = true,
@@ -330,7 +336,7 @@ pub struct Deposit<'info> {
     #[account(
         mut,
         associated_token::mint = mint,
-        associated_token::authority = escrow_account
+        associated_token::authority = admin
     )]
     pub vault_ata: Account<'info, TokenAccount>,
 
@@ -341,8 +347,8 @@ pub struct Deposit<'info> {
     )]
     pub initializer_ata: Account<'info, TokenAccount>,
 
-    pub assoicated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
 }
 
@@ -352,8 +358,14 @@ pub struct Deposit<'info> {
 )]
 pub struct Withdraw<'info> {
     #[account(mut)]
+    pub admin: Signer<'info>,
+
+    #[account(mut)]
     pub initializer: Signer<'info>,
 
+    #[account(
+        mint::decimals = 0
+      )]
     pub mint: Account<'info, Mint>,
 
     #[account(
@@ -372,7 +384,7 @@ pub struct Withdraw<'info> {
             escrow_id.as_bytes(), 
             initializer.key().as_ref(),
         ],
-        bump = escrow_account.bump,
+        bump = trader_state.bump,
         realloc = UserEscrowState::LEN,
         realloc::payer = initializer,
         realloc::zero = true,
@@ -383,7 +395,7 @@ pub struct Withdraw<'info> {
     #[account(
         mut,
         associated_token::mint = mint,
-        associated_token::authority = escrow_account
+        associated_token::authority = admin
     )]
     pub vault_ata: Account<'info, TokenAccount>,
 
@@ -394,7 +406,6 @@ pub struct Withdraw<'info> {
     )]
     pub initializer_ata: Account<'info, TokenAccount>,
 
-    pub assoicated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
@@ -405,8 +416,14 @@ pub struct Withdraw<'info> {
 )]
 pub struct Cancel<'info> {
     #[account(mut)]
+    pub admin: Signer<'info>,
+
+    #[account(mut)]
     pub initializer: Signer<'info>,
 
+    #[account(
+        mint::decimals = 0
+      )]
     pub mint: Account<'info, Mint>,
 
     #[account(
@@ -425,7 +442,7 @@ pub struct Cancel<'info> {
             escrow_id.as_bytes(), 
             initializer.key().as_ref(),
         ],
-        bump = escrow_account.bump,
+        bump = trader_state.bump,
         realloc = UserEscrowState::LEN,
         realloc::payer = initializer,
         realloc::zero = true,
@@ -436,7 +453,7 @@ pub struct Cancel<'info> {
     #[account(
         mut,
         associated_token::mint = mint,
-        associated_token::authority = escrow_account
+        associated_token::authority = admin
     )]
     pub vault_ata: Account<'info, TokenAccount>,
 
@@ -447,7 +464,6 @@ pub struct Cancel<'info> {
     )]
     pub initializer_ata: Account<'info, TokenAccount>,
 
-    pub assoicated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
@@ -456,7 +472,7 @@ pub struct Cancel<'info> {
 #[instruction(
     escrow_id: String,
     _depositor: Pubkey,
-    _trader_b: Pubkey
+    _withdrawer: Pubkey
 )]
 pub struct UpdateDepositStatus<'info> {
     #[account(mut)]
@@ -478,7 +494,7 @@ pub struct UpdateDepositStatus<'info> {
             escrow_id.as_bytes(), 
             _depositor.as_ref(),
         ],
-        bump = escrow_account.bump,
+        bump = depositor_state.bump,
         realloc = UserEscrowState::LEN,
         realloc::payer = admin,
         realloc::zero = true,
@@ -491,17 +507,16 @@ pub struct UpdateDepositStatus<'info> {
         seeds = [
             b"user-state".as_ref(),
             escrow_id.as_bytes(), 
-            _trader_b.as_ref(),
+            _withdrawer.as_ref(),
         ],
-        bump = escrow_account.bump,
+        bump = withdrawer_state.bump,
         realloc = UserEscrowState::LEN,
         realloc::payer = admin,
         realloc::zero = true,
-        constraint = escrow_account.escrow_id == trader_b_state.escrow_id && _trader_b == trader_b_state.trader,
+        constraint = escrow_account.escrow_id == withdrawer_state.escrow_id && _withdrawer == withdrawer_state.trader,
     )]
-    pub trader_b_state: Account<'info, UserEscrowState>,
+    pub withdrawer_state: Account<'info, UserEscrowState>,
 
-    pub assoicated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
@@ -532,7 +547,7 @@ pub struct UpdateWithdrawalStatus<'info> {
             escrow_id.as_bytes(), 
             _recipient.as_ref(),
         ],
-        bump = escrow_account.bump,
+        bump = recipient_state.bump,
         realloc = UserEscrowState::LEN,
         realloc::payer = admin,
         realloc::zero = true,
@@ -547,7 +562,7 @@ pub struct UpdateWithdrawalStatus<'info> {
             escrow_id.as_bytes(), 
             _sender.as_ref(),
         ],
-        bump = escrow_account.bump,
+        bump = sender_state.bump,
         realloc = UserEscrowState::LEN,
         realloc::payer = admin,
         realloc::zero = true,
@@ -555,7 +570,6 @@ pub struct UpdateWithdrawalStatus<'info> {
     )]
     pub sender_state: Account<'info, UserEscrowState>,
 
-    pub assoicated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
