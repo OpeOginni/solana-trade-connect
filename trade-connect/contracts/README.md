@@ -1,6 +1,7 @@
 # Solana Escrow Program
 
 1. Build the program   
-`anchor build``
+`anchor build`
 
-2. 
+2. Test
+`anchor test`
