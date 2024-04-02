@@ -5,8 +5,7 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-escrow-program = "2R5c5WvbM2iURA3wCZBBzBMy7ZLtVFNpDDKzz4ntjpQL"
-escrow-simple = "Eg2okp1SgJrF6Qf1s95gZ11rgga5hdkrLWSRh4mQ8wpH"
+escrow-simple = "Cdazu59QUTfZquTMHZZMkdUQzqiHPGdxNb6dNjCB7VGb"
 
 [registry]
 url = "https://api.apr.dev"
@@ -17,3 +16,6 @@ wallet = "/Users/jaredchilders/.config/solana/id.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+
+[test]
+startup_wait = 10000
