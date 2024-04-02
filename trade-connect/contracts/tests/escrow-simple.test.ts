@@ -46,8 +46,8 @@ describe("Escrow Program Unit Tests", () => {
   let vaults_b_ata: splToken.Account[];
 
   // ATAs that are initialized when the withdrawal process happens
-  let withdrawal_trader_a_ata: splToken.Account[];
-  let withdrawal_trader_b_ata: splToken.Account[];
+  let recipient_a_ata: splToken.Account[];
+  let recipient_b_ata: splToken.Account[];
 
   let escrowPda: anchor.web3.PublicKey;
   
@@ -356,7 +356,7 @@ describe("Escrow Program Unit Tests", () => {
     expect(trader_a_status.state.hasOwnProperty('deposited')).to.be.true;
 
     const escrow_state_after_one_deposit = await program.account.escrow.fetch(escrowPda);
-    expect(escrow_state_after_one_deposit.escrowState.hasOwnProperty('initialized')).to.be.true;
+    expect(escrow_state_after_one_deposit.escrowState.hasOwnProperty('depositing')).to.be.true;
 
 
     //update for B
@@ -389,7 +389,7 @@ describe("Escrow Program Unit Tests", () => {
   // TODO: create test where update does not happen and trader a withdraw fails
   // example: Trader A depsoits but Trader B has not,
   // example: Trader A and Trader B both deposit but UpdateState was not called
-  it("Trader A Withdraws token from vault (receiving Trader B's NFTs)", async () => {
+  it("Admin Releases tokens from vault and sends them to Trader A", async () => {
 
     // iterate through B mint accounts
     await Promise.all(mint_accounts_b.map(async (mint_account, index) => {
@@ -449,5 +449,145 @@ describe("Escrow Program Unit Tests", () => {
         recipientAtaBalanceAfter - recipientAtaBalanceBefore
       );
     }));
-  }); // Trader B Deposits token into vault
+  }); // Admin releases NFTs to Trader A
+
+  it("Admin Releases tokens from vault and sends them to Trader B", async () => {
+
+    // iterate through B mint accounts
+    await Promise.all(mint_accounts_a.map(async (mint_account, index) => {
+
+      const vault_ata = await splToken.getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        admin_signer,
+        mint_account,
+        admin_signer.publicKey,
+      );
+
+      const vaultAtaBalanceBefore = Number(vault_ata.amount);
+
+      const recipient_ata = await splToken.getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        admin_signer,
+        mint_account,
+        trader_b.publicKey,
+      );
+
+      const recipientAtaBalanceBefore = Number(recipient_ata.amount);
+
+      const tx = await program.methods.withdrawIndividual(
+        MOCK_ESCROW_ID,
+      )
+      .accounts({
+        admin: admin_signer.publicKey,
+        initializer: trader_b.publicKey,
+        mint: mint_account,
+        escrowAccount: escrowPda,
+        traderState: trader_b_state,
+        vaultAta: vault_ata.address,
+        initializerAta: recipient_ata.address,
+        tokenProgram: splToken.TOKEN_PROGRAM_ID,
+      })
+      .signers([admin_signer, trader_b])
+      .rpc();
+
+      // Get the balances of the relevant token accounts after the instruction
+      const vaultAtaBalanceAfter = await splToken.getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        admin_signer,
+        mint_account,
+        admin_signer.publicKey,
+      ).then((account) => Number(account.amount));
+
+      const recipientAtaBalanceAfter = await splToken.getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        admin_signer,
+        mint_account,
+        trader_b.publicKey,
+      ).then((account) => Number(account.amount));
+
+      // Assert that the token transfer was successful
+      assert.strictEqual(
+        vaultAtaBalanceBefore - vaultAtaBalanceAfter,
+        recipientAtaBalanceAfter - recipientAtaBalanceBefore
+      );
+    }));
+  }); // Admin releases NFTs to Trader B
+
+  it("Admin Updates Withdrawal State", async() => {
+    
+    // Each one of RecipientA's ATAs have the respective mint account listed in mint account b
+    // wheere owner = trader_a and mint_accounts = mint_accounts_b
+    let recipient_params_a: utils.IAssociatedTokenAccounts = {
+      connection: provider.connection,
+      payer: admin_signer,
+      mint_accounts: mint_accounts_b,
+      owner: trader_a.publicKey,
+    }
+
+    // Each one of RecipientB's ATAs have the respective mint account listed in mint account a
+    // wheere owner = trader_b and mint_accounts = mint_accounts_a
+    let recipient_params_b: utils.IAssociatedTokenAccounts = {
+      connection: provider.connection,
+      payer: admin_signer,
+      mint_accounts: mint_accounts_a,
+      owner: trader_b.publicKey,
+    }
+
+    // create the list of recipient ata
+    recipient_a_ata = await utils.create_mutiple_associated_token_accounts(recipient_params_a);
+    recipient_b_ata = await utils.create_mutiple_associated_token_accounts(recipient_params_b);
+
+    // convert list of vault ata to remaining accounts
+    const a_remaining_accounts = await utils.ata_to_remaining_accounts(recipient_a_ata);
+
+    // update withdrawal status for A 
+    await program.methods.updateTraderWithdrawalStatus(
+      MOCK_ESCROW_ID,
+      trader_a.publicKey,
+      trader_b.publicKey
+    )
+    .accounts({
+      admin: admin_signer.publicKey,
+      escrowAccount: escrowPda,
+      recipientState: trader_a_state,
+      senderState: trader_b_state,
+      tokenProgram: splToken.TOKEN_PROGRAM_ID,
+    })
+    .signers([admin_signer])
+    .remainingAccounts(a_remaining_accounts)
+    .rpc();
+
+    const trader_a_status = await program.account.userEscrowState.fetch(trader_a_state);
+    expect(trader_a_status.state.hasOwnProperty('withdrew')).to.be.true;
+
+    const escrow_state_after_one_deposit = await program.account.escrow.fetch(escrowPda);
+    expect(escrow_state_after_one_deposit.escrowState.hasOwnProperty('withdrawing')).to.be.true;
+
+
+    //update for B
+    const b_remaining_accounts = await utils.ata_to_remaining_accounts(recipient_b_ata);
+
+    await program.methods.updateTraderWithdrawalStatus(
+      MOCK_ESCROW_ID,
+      trader_b.publicKey,
+      trader_a.publicKey
+    )
+    .accounts({
+      admin: admin_signer.publicKey,
+      escrowAccount: escrowPda,
+      recipientState: trader_b_state,
+      senderState: trader_a_state,
+      tokenProgram: splToken.TOKEN_PROGRAM_ID,
+    })
+    .signers([admin_signer])
+    .remainingAccounts(b_remaining_accounts)
+    .rpc();
+
+    const trader_b_status = await program.account.userEscrowState.fetch(trader_b_state);
+    expect(trader_b_status.state.hasOwnProperty('withdrew')).to.be.true;
+
+    // check to see if Escrow State is set to Deposited 
+    const escrow_state_after_both_deposit = await program.account.escrow.fetch(escrowPda);
+    expect(escrow_state_after_both_deposit.escrowState.hasOwnProperty('finalized')).to.be.true;
+  })
 });

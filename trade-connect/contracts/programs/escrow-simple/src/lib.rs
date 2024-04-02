@@ -72,10 +72,14 @@ pub mod escrow_simple {
         escrow_id: String,
     ) -> Result<()> {
 
-        let escrow_account = &ctx.accounts.escrow_account;
+        let escrow_account = &mut ctx.accounts.escrow_account;
 
-        // security checks
-        require!(escrow_account.escrow_state == Status::Initialized, EscrowErrors::PermissionDenied);
+        // state checks
+        require!(
+            escrow_account.escrow_state == Status::Initialized
+                || escrow_account.escrow_state == Status::Depositing, 
+            EscrowErrors::PermissionDenied
+        );
         
         let cpi_ctx = CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
@@ -87,7 +91,13 @@ pub mod escrow_simple {
             },
         );
 
-        token::transfer_checked(cpi_ctx, 1, 0)
+        let result = token::transfer_checked(cpi_ctx, 1, 0);
+
+        if escrow_account.escrow_state != Status::Depositing {
+            escrow_account.escrow_state = Status::Depositing;
+        }
+
+        return result;
     }
 
     // escrow 
@@ -96,9 +106,13 @@ pub mod escrow_simple {
         escrow_id: String,
     ) -> Result<()> {
 
-        let escrow_account = &ctx.accounts.escrow_account;
+        let escrow_account = &mut ctx.accounts.escrow_account;
 
-        require!(escrow_account.escrow_state == Status::Deposited, EscrowErrors::WithdrawalFailed);
+        require!(
+            escrow_account.escrow_state == Status::Deposited
+                || escrow_account.escrow_state == Status::Withdrawing, 
+            EscrowErrors::WithdrawalFailed
+        );
 
         let cpi_ctx = CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
@@ -106,11 +120,17 @@ pub mod escrow_simple {
                 from: ctx.accounts.vault_ata.to_account_info(),
                 mint: ctx.accounts.mint.to_account_info(),
                 to: ctx.accounts.initializer_ata.to_account_info(),
-                authority: ctx.accounts.initializer.to_account_info(),
+                authority: ctx.accounts.admin.to_account_info(),
             },
         );
 
-        token::transfer_checked(cpi_ctx, 1, 0)
+        let result = token::transfer_checked(cpi_ctx, 1, 0);
+
+        if escrow_account.escrow_state != Status::Withdrawing {
+            escrow_account.escrow_state = Status::Withdrawing;
+        }
+        
+        return result;
     }
 
     // escrow sends funds back to original owners
@@ -119,7 +139,7 @@ pub mod escrow_simple {
         escrow_id: String,
     ) -> Result<()> {
 
-        let trader_state: &mut Account<'_, UserEscrowState> = &mut ctx.accounts.trader_state;
+        let escrow_account = &mut ctx.accounts.escrow_account;
 
         // require!() to make sure that the initializer was the previous owner of the NFT
         
@@ -133,8 +153,13 @@ pub mod escrow_simple {
             },
         );
 
-        token::transfer_checked(cpi_ctx, 1, 0)
-        
+        let result = token::transfer_checked(cpi_ctx, 1, 0);
+
+        if escrow_account.escrow_state != Status::Cancelling {
+            escrow_account.escrow_state = Status::Cancelling;
+        }
+
+        return result;
     }
 
     // this is not optimized. can be imrpved greatly but im trying to rush atm
@@ -146,7 +171,7 @@ pub mod escrow_simple {
         let depositor_state: &mut Account<'_, UserEscrowState> = &mut ctx.accounts.depositor_state;
         let withdrawer_state: &mut Account<'_, UserEscrowState> = &mut ctx.accounts.withdrawer_state;
 
-        require!(escrow_account.escrow_state == Status::Initialized, EscrowErrors::EscrowNotInitialized);
+        require!(escrow_account.escrow_state == Status::Depositing, EscrowErrors::PermissionDenied);
         require!(depositor_state.state != UserStatus::Deposited, EscrowErrors::DespositerAlreadDeposited);
 
         //let admin_key = &ctx.accounts.admin.key();
@@ -193,7 +218,7 @@ pub mod escrow_simple {
         let recipient = &mut ctx.accounts.recipient_state;
         let sender = &mut ctx.accounts.sender_state;
 
-        assert!(escrow_account.escrow_state == Status::Deposited);
+        assert!(escrow_account.escrow_state == Status::Withdrawing);
         assert!(recipient.state != UserStatus::Withdrew);
 
         let verify_mint_keys =  sender.trader_mint.clone();
@@ -204,6 +229,7 @@ pub mod escrow_simple {
             EscrowErrors::RemainingAccountsNotSufficient
         );
 
+        // Token Accounts should be the recipient_ata
         for (account_info, mint_pubkey) in ctx.remaining_accounts.iter().zip(verify_mint_keys.iter()) {
 
             // deserialize the AccountInfo into type TokenAccount
@@ -308,11 +334,15 @@ pub struct Deposit<'info> {
     pub mint: Account<'info, Mint>,
 
     #[account(
+        mut,
         seeds = [
             b"escrow".as_ref(),
             escrow_id.as_bytes(),
         ],
         bump = escrow_account.bump,
+        realloc = Escrow::LEN,
+        realloc::payer = admin,
+        realloc::zero = true,
     )]
     pub escrow_account: Account<'info, Escrow>,
 
@@ -367,11 +397,15 @@ pub struct Withdraw<'info> {
     pub mint: Account<'info, Mint>,
 
     #[account(
+        mut,
         seeds = [
             b"escrow".as_ref(),
             escrow_id.as_bytes(),
         ],
         bump = escrow_account.bump,
+        realloc = Escrow::LEN,
+        realloc::payer = admin,
+        realloc::zero = true,
     )]
     pub escrow_account: Account<'info, Escrow>,
 
@@ -425,11 +459,15 @@ pub struct Cancel<'info> {
     pub mint: Account<'info, Mint>,
 
     #[account(
+        mut,
         seeds = [
             b"escrow".as_ref(),
             escrow_id.as_bytes(),
         ],
         bump = escrow_account.bump,
+        realloc = Escrow::LEN,
+        realloc::payer = admin,
+        realloc::zero = true,
     )]
     pub escrow_account: Account<'info, Escrow>,
 
@@ -651,7 +689,10 @@ pub enum UserStatus {
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Copy, Debug)]
 pub enum Status {
     Initialized,
+    Depositing,
     Deposited,
     Cancelled,
+    Cancelling,
+    Withdrawing,
     Finalized,
 }
