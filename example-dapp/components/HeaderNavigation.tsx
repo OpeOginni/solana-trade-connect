@@ -26,7 +26,7 @@ export function HeaderNav() {
   const pathName = usePathname();
 
   return (
-    <div className="hidden lg:flex lg:gap-x-12">
+    <div className="hidden md:flex md:gap-x-12">
       {navLinks.map((navLink) => (
         <Link
           key={navLink.name}
@@ -53,7 +53,7 @@ export function HeaderNavMobile() {
           key={navLink.name}
           href={navLink.href}
           className={cn(
-            "-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 ",
+            "-mx-3 block rounded-md px-3 py-2 text-base font-semibold leading-7 ",
             pathName == navLink.href ? "text-amber-600" : "text-gray-900  hover:bg-gray-50"
           )}
         >

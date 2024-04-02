@@ -3,7 +3,7 @@ import * as grpc from "@grpc/grpc-js";
 import { getGrpcClient, getGrpcServer } from "../../grpc/dist";
 import { initializeTradeSchema, updateTradeItemsSchema, updateTradeStatusSchema } from "./types/trade.types";
 import { TradeServiceHandlers } from "../../grpc/dist/proto/chat_main/TradeService";
-import { initializeTradeService, updateTradeItemsService } from "./services/trade.service";
+import { initializeTradeService, updateTradeItemsService, rejectTradeService, cancleTradeService, acceptTradeService } from "./services/trade.service";
 import grpcErrorHandler from "./lib/grpcErrorHandler";
 
 const { server: grpcServer, grpcPackage } = getGrpcServer();
@@ -17,6 +17,10 @@ const CHAT_GRPC_HOST = process.env.CHAT_GRPC_HOST || "0.0.0.0";
 const grpcClient = getGrpcClient(CHAT_GRPC_HOST, CHAT_GRPC_PORT);
 
 export async function initCompanyInfoGRPC(companyId: string, accessKey: string) {
+  console.log({
+    companyId,
+    accessKey,
+  });
   grpcClient.companyServiceClient.InitCompanyInfo(
     {
       companyId,
@@ -61,34 +65,41 @@ export async function _getGRPCServer() {
         return grpcErrorHandler(res, err);
       }
     },
-    AcceptTrade: (req, res) => {
+    AcceptTrade: async (req, res) => {
       try {
         const dto = updateTradeStatusSchema.parse(req.request);
         console.log(dto);
 
-        res(null, { success: true, tradeId: dto.tradeId });
+        const response = await acceptTradeService(dto)
+
+        res(null, { success: true, tradeId: dto.tradeId, transactions: response.transactions });
       } catch (err: any) {
         console.error(err);
         return grpcErrorHandler(res, err);
       }
     },
-    RejectTrade: (req, res) => {
+    RejectTrade: async (req, res) => {
       try {
         const dto = updateTradeStatusSchema.parse(req.request);
         console.log(dto);
 
-        res(null, { success: true });
+        const response = await rejectTradeService(dto);
+
+
+        res(null, { success: true, tradeId: response.id });
       } catch (err: any) {
         console.error(err);
         return grpcErrorHandler(res, err);
       }
     },
-    CancleTrade: (req, res) => {
+    CancleTrade: async (req, res) => {
       try {
         const dto = updateTradeStatusSchema.parse(req.request);
         console.log(dto);
 
-        res(null, { success: true });
+        const response = await cancleTradeService(dto)
+
+        res(null, { success: true, tradeId: response.id });
       } catch (err: any) {
         console.error(err);
         return grpcErrorHandler(res, err);

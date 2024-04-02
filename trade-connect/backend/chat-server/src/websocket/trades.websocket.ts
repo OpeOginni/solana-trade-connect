@@ -64,6 +64,12 @@ export async function acceptTrade(socket: Socket, updatedItems: UpdateTradeStatu
     message: `[TRADE]:${response.tradeId}`,
   };
 
+  // const newTransaction = {
+  //   fromAddress: userAddress,
+  //   toAddress: response.otherUserAddress!,
+  //   message: `[TRANSACTION]:${response.transaction}`,
+  // };
+
   await sendMessage(socket, newMessage);
 }
 
