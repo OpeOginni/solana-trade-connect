@@ -14,7 +14,7 @@ FROM base AS build
 WORKDIR /grpc
 RUN yarn build
 
-WORKDIR /mian-server
+WORKDIR /main-server
 RUN yarn build
 
 # Stage 3 - Production
