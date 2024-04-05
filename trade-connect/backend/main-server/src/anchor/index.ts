@@ -4,7 +4,13 @@ import dotenv from "dotenv";
 import IDL from "./IDL";
 
 dotenv.config();
-const adminKeyPair = Keypair.fromSecretKey(Buffer.from(process.env.SOLANA_ADMIN_PRIVATE_KEY!, "base64"));
+
+const secretKey = process.env.SOLANA_SECRET_KEY! as Iterable<number>;
+
+let adminSecretKey = Uint8Array.from(secretKey);
+
+let adminKeyPair = Keypair.fromSecretKey(adminSecretKey);
+// const adminKeyPair = Keypair.fromSecretKey(Buffer.from(process.env.SOLANA_ADMIN_PRIVATE_KEY!, "base64"));
 
 export const adminWallet = new Wallet(adminKeyPair);
 
