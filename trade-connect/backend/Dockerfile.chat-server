@@ -3,27 +3,22 @@ FROM node:18-alpine AS base
 WORKDIR /chat-server
 COPY ./chat-server .
 RUN yarn install
+
 WORKDIR /grpc
 COPY ./grpc .
 RUN yarn install
-RUN yarn proto:gen
+RUN yarn proto-loader-gen-types --grpcLib=@grpc/grpc-js --outDir=src/proto/ src/proto/*.proto
 
 # Stage 2 - Build the app
 FROM base AS build
 WORKDIR /grpc
 RUN yarn build
+
 WORKDIR /chat-server
 RUN yarn build
 
 # Stage 3 - Production
 FROM build
 WORKDIR /chat-server
-ENV REDIS_PORT=6379
-ENV REDIS_HOST="localhost"
-ENV REDIS_PASSWORD="my-password"
-
-ENV MAIN_GRPC_HOST="0.0.0.0"
-ENV MAIN_GRPC_PORT="8082"
-
 
 CMD ["node", "dist/index.js"]
