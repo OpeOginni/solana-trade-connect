@@ -51,15 +51,5 @@ async function main() {
   fs.writeFileSync("mintAddresses.txt", mintAddresses);
 }
 main();
-// OR
 
-// for (const nft of nfts) {
-//   const mint = generateSigner(umi);
-//   await createNft(umi, {
-//     mint,
-//     name: nft.name,
-//     tokenOwner: nft.destination,
-//     uri: nft.alreadySavedURI,
-//     sellerFeeBasisPoints: percentAmount(5.5),
-//   }).sendAndConfirm(umi);
-// }
+// https://developers.metaplex.com/token-metadata/mint
