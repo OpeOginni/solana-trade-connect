@@ -1,12 +1,12 @@
 import { status } from "@grpc/grpc-js";
-import { Connection, PublicKey, Keypair } from "@solana/web3.js";
-import { AnchorProvider, setProvider, Program } from "@project-serum/anchor";
 
 import db from "../db";
 import CustomError from "../lib/customError";
 import { TradeStatus } from "../types/enums";
 import { InitializeTradeDto, UpdateTradeItemsDto, UpdateTradeStatusDto } from "../types/trade.types";
 import { Trade } from "@prisma/client";
+import { Connection, Keypair, PublicKey } from "@solana/web3.js";
+import { createTransactionToTradeItems } from "./transaction.service";
 
 export async function initializeTradeService(dto: InitializeTradeDto) {
   const newTrade = await db.trade.create({
@@ -69,9 +69,9 @@ export async function acceptTradeService(dto: UpdateTradeStatusDto) {
     },
   });
 
-  const transactions = await acceptTradeSolanaService(trade)
+  const transactions = await acceptTradeSolanaService(trade);
 
-  return {acceptedTrade, transactions};
+  return { acceptedTrade, transactions };
 }
 
 export async function rejectTradeService(dto: UpdateTradeStatusDto) {
@@ -127,27 +127,27 @@ export async function cancleTradeService(dto: UpdateTradeStatusDto) {
 }
 
 export async function acceptTradeSolanaService(trade: Trade) {
-  const adminWallet = Keypair.fromSecretKey(Buffer.from(process.env.SOLANA_ADMIN_PRIVATE_KEY!, "base64"));
+  const tradeCreatorSwapItemsPublicKeys = trade.tradeCreatorSwapItems.map((item) => new PublicKey(item));
+  const tradeRecipientSwapItemsPublicKeys = trade.tradeRecipientSwapItems.map((item) => new PublicKey(item));
 
-  const connection = new Connection(process.env.SOLANA_DEVNET_RPC_URL!, "confirmed");
+  // Create Each User Transaction and send back the encoded base58 transaction
+  const tradeCreatorTransation = await createTransactionToTradeItems(
+    new PublicKey(trade.tradeCreatorAddress),
+    trade.id,
+    tradeCreatorSwapItemsPublicKeys
+  );
 
-  setProvider(AnchorProvider.env());
-
-  const idl = require("../lib/idl.json");
-  const programId = new PublicKey(process.env.SOLANA_PROGRAM_ID!);
-
-  const program = new Program(idl, programId);
-
-  await program.methods?.init()?.rpc?.();
-
-  const tradeCreatorAddress = trade.tradeCreatorAddress;
-  const tradeRecipientAddress = trade.tradeRecipientAddress;
+  const tradeRecipientTransaction = await createTransactionToTradeItems(
+    new PublicKey(trade.tradeRecipientAddress),
+    trade.id,
+    tradeRecipientSwapItemsPublicKeys
+  );
 
   return {
     success: true,
     transactions: {
-      tradeCreatorTransation: "",
-      tradeRecipientTransaction: "",
+      tradeCreatorTransation: tradeCreatorTransation.transactionBase58,
+      tradeRecipientTransaction: tradeRecipientTransaction.transactionBase58,
     },
   };
 }

@@ -35,6 +35,8 @@ model Trade {
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
   status                  Status   @default(PENDING)
+  creatorDeposited        Boolean  @default(false)
+  recipientDeposited      Boolean  @default(false)
 }
 
 model AccessKey {

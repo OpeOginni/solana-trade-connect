@@ -21,6 +21,11 @@ const navLinks: NavLinksType[] = [
     pathName: "/chats",
     href: "/chats",
   },
+  {
+    name: "Test",
+    pathName: "/test",
+    href: "/test",
+  },
 ];
 export function HeaderNav() {
   const pathName = usePathname();

@@ -3,8 +3,17 @@ import * as grpc from "@grpc/grpc-js";
 import { getGrpcClient, getGrpcServer } from "../../grpc/dist";
 import { initializeTradeSchema, updateTradeItemsSchema, updateTradeStatusSchema } from "./types/trade.types";
 import { TradeServiceHandlers } from "../../grpc/dist/proto/chat_main/TradeService";
-import { initializeTradeService, updateTradeItemsService, rejectTradeService, cancleTradeService, acceptTradeService } from "./services/trade.service";
+import {
+  initializeTradeService,
+  updateTradeItemsService,
+  rejectTradeService,
+  cancleTradeService,
+  acceptTradeService,
+} from "./services/trade.service";
 import grpcErrorHandler from "./lib/grpcErrorHandler";
+import CustomError from "./lib/customError";
+import { signedDepositTransactionSchema } from "./types/transaction.types";
+import { updateDepositState } from "./services/transaction.service";
 
 const { server: grpcServer, grpcPackage } = getGrpcServer();
 
@@ -46,7 +55,7 @@ export async function _getGRPCServer() {
 
         const response = await initializeTradeService(dto);
 
-        res(null, { success: true, tradeId: response.id });
+        res(null, { success: true, tradeId: response.id, trade: response });
       } catch (err: any) {
         console.error(err);
         return grpcErrorHandler(res, err);
@@ -59,7 +68,7 @@ export async function _getGRPCServer() {
 
         const response = await updateTradeItemsService(dto);
 
-        res(null, { success: true, tradeId: response.id });
+        res(null, { success: true, tradeId: response.id, trade: response });
       } catch (err: any) {
         console.error(err);
         return grpcErrorHandler(res, err);
@@ -70,9 +79,22 @@ export async function _getGRPCServer() {
         const dto = updateTradeStatusSchema.parse(req.request);
         console.log(dto);
 
-        const response = await acceptTradeService(dto)
+        const response = await acceptTradeService(dto);
 
-        res(null, { success: true, tradeId: dto.tradeId, transactions: response.transactions });
+        if (!response.transactions.success) throw new CustomError("Trade Error", "Trade Failed", 500);
+
+        const serializedTransactions = response.transactions;
+        const trade = response.acceptedTrade;
+
+        // make a key value map
+
+        // Returns a map of transactions for each participant of a trade
+        const transactionsMap = {
+          [trade.tradeCreatorAddress]: serializedTransactions.transactions.tradeCreatorTransation,
+          [trade.tradeRecipientAddress]: serializedTransactions.transactions.tradeRecipientTransaction,
+        };
+
+        res(null, { success: true, tradeId: dto.tradeId, serializedTransactions: transactionsMap, trade: trade });
       } catch (err: any) {
         console.error(err);
         return grpcErrorHandler(res, err);
@@ -85,8 +107,7 @@ export async function _getGRPCServer() {
 
         const response = await rejectTradeService(dto);
 
-
-        res(null, { success: true, tradeId: response.id });
+        res(null, { success: true, tradeId: response.id, trade: response });
       } catch (err: any) {
         console.error(err);
         return grpcErrorHandler(res, err);
@@ -97,9 +118,20 @@ export async function _getGRPCServer() {
         const dto = updateTradeStatusSchema.parse(req.request);
         console.log(dto);
 
-        const response = await cancleTradeService(dto)
+        const response = await cancleTradeService(dto);
 
-        res(null, { success: true, tradeId: response.id });
+        res(null, { success: true, tradeId: response.id, trade: response });
+      } catch (err: any) {
+        console.error(err);
+        return grpcErrorHandler(res, err);
+      }
+    },
+    SignedDepositTransaction: async (req, res) => {
+      try {
+        const dto = signedDepositTransactionSchema.parse(req.request);
+
+        const response = await updateDepositState(dto.tradeId, dto.signerAddress);
+        res(null, response);
       } catch (err: any) {
         console.error(err);
         return grpcErrorHandler(res, err);

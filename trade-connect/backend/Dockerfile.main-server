@@ -1,0 +1,24 @@
+# Stage 1 - Build the base
+FROM node:18-alpine AS base
+WORKDIR /main-server
+COPY ./main-server .
+RUN yarn install
+
+WORKDIR /grpc
+COPY ./grpc .
+RUN yarn install
+RUN yarn proto-loader-gen-types --grpcLib=@grpc/grpc-js --outDir=src/proto/ src/proto/*.proto
+
+# Stage 2 - Build the app
+FROM base AS build
+WORKDIR /grpc
+RUN yarn build
+
+WORKDIR /mian-server
+RUN yarn build
+
+# Stage 3 - Production
+FROM build
+WORKDIR /main-server
+
+CMD ["node", "dist/index.js"]
