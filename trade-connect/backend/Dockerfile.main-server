@@ -1,10 +1,10 @@
 # Stage 1 - Build the base
 FROM node:18-alpine AS base
 WORKDIR /main-server
-COPY ./main-server .
+COPY ./trade-connect/backend/main-server .
 RUN yarn install
 WORKDIR /grpc
-COPY ./grpc .
+COPY ./trade-connect/backend/grpc .
 RUN yarn install
 RUN yarn proto-loader-gen-types --grpcLib=@grpc/grpc-js --outDir=src/proto/ src/proto/*.proto
 
