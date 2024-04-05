@@ -12,16 +12,20 @@ import NFTBox from "@/components/NftBox";
 import { DigitalAsset } from "@metaplex-foundation/mpl-token-metadata";
 import NFTImage from "@/components/NftImage";
 import { Ghost } from "lucide-react";
+import { TransactionChannelDto } from "@/types/websocket.types";
+import base58 from "bs58";
+import { Transaction } from "@solana/web3.js";
 
 const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID as string;
 
 const USER_NEW_MESSAGE_CHANNEL = (companyId: string, userAddress: string) => `chat:new-message:${companyId}:${userAddress}`;
+const USER_TRANSACTION_CHANNEL = (companyId: string, userAddress: string) => `transaction:new:${companyId}:${userAddress}`;
 
 export default function ChatSessionPage() {
   const params = useParams<{ userAddress: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { publicKey } = useWallet();
+  const { publicKey, signTransaction } = useWallet();
 
   const socket = useSocketContext();
 
@@ -93,12 +97,17 @@ export default function ChatSessionPage() {
   }, [params.userAddress]);
 
   useEffect(() => {
-    console.log("Listening to Received Message");
-
+    if (!signTransaction) return;
     const channel = USER_NEW_MESSAGE_CHANNEL(COMPANY_ID, publicKey?.toBase58()!);
 
-    console.log(`Listening to ${channel}`);
-    console.log(`Socket connected: ${socket?.connected}`);
+    const transactionChannel = USER_TRANSACTION_CHANNEL(COMPANY_ID, publicKey?.toBase58()!);
+
+    socket?.on(transactionChannel, async (dto: TransactionChannelDto) => {
+      const transaction = Transaction.from(base58.decode(dto.serializedTransaction));
+
+      const signature = await signTransaction(transaction);
+      console.log(signature);
+    });
 
     socket?.on(channel, (messageObject: NewMessageDto) => {
       console.log("RECIVED MESSAGE");

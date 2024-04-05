@@ -4,7 +4,8 @@ import { NewMessageDto, NewMessageInputDto, newMessageSchema } from "../types/ch
 import { publisher } from "../redis";
 import { SaveCompanyDto } from "../types/company.types";
 import { CHAT_KEY, COMPANY_KEY, COMPANY_ONLINE_COUNT_KEY, UNREAD_CHAT_LIST, USER_KEY, USER_RECENT_CHAT_LIST } from "../redis/keys";
-import { NEW_MESSAGE_CHANNEL, ONLINE_COUNT_UPDATED_CHANNEL } from "../redis/channels";
+import { NEW_MESSAGE_CHANNEL, ONLINE_COUNT_UPDATED_CHANNEL, USER_TRANSACTION_CHANNEL } from "../redis/channels";
+import CustomError from "../lib/customError";
 
 export async function initializeCompany(dto: SaveCompanyDto) {
   await publisher.set(COMPANY_ONLINE_COUNT_KEY(dto.companyId), 0);
@@ -65,6 +66,7 @@ export async function sendMessage(socket: Socket, newMessage: NewMessageInputDto
   const userAddress = socket.data.user.userAddress as string;
 
   newMessage.fromAddress = userAddress;
+  newMessage.isTrade = false;
   const message = newMessageSchema.parse(newMessage);
 
   const reciever = await publisher.hgetall(`company:${companyId}:user:${message.toAddress}`);
@@ -86,8 +88,9 @@ export async function sendMessage(socket: Socket, newMessage: NewMessageInputDto
 }
 
 async function updateRecentChats(companyId: string, userAddress1: string, userAddress2: string) {
-  await publisher.hset(USER_RECENT_CHAT_LIST(companyId, userAddress1), userAddress2, new Date().toISOString());
-  await publisher.hset(USER_RECENT_CHAT_LIST(companyId, userAddress2), userAddress1, new Date().toISOString());
+  const chatTime = new Date().toISOString();
+  await publisher.hset(USER_RECENT_CHAT_LIST(companyId, userAddress1), userAddress2, chatTime);
+  await publisher.hset(USER_RECENT_CHAT_LIST(companyId, userAddress2), userAddress1, chatTime);
 }
 
 async function incrementUnreadMessages(companyId: string, messageObject: NewMessageDto) {
@@ -96,7 +99,7 @@ async function incrementUnreadMessages(companyId: string, messageObject: NewMess
 
   if (recipientOnline === "true") {
     // If the recipient is Online Publish a new message that will send a socket responese to that specific user
-    publisher.publish(NEW_MESSAGE_CHANNEL, JSON.stringify({ companyId, messageObject }));
+    await publisher.publish(NEW_MESSAGE_CHANNEL, JSON.stringify({ companyId, messageObject }));
     return;
   }
 

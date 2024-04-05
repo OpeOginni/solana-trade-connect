@@ -24,3 +24,7 @@ export const updateTradeStatusSchema = z.object({
 export type InitializeTradeDto = z.infer<typeof initializeTradeSchema>;
 export type UpdateTradeItemsDto = z.infer<typeof updateTradeItemsSchema>;
 export type UpdateTradeStatusDto = z.infer<typeof updateTradeStatusSchema>;
+
+export type TransactionsMap = {
+  [key: string]: string; // Replace TransactionType with the actual type of your transactions
+};
