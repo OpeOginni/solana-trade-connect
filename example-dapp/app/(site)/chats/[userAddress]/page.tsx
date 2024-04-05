@@ -1,5 +1,5 @@
 "use client";
-import { NewMessageDto, getUserChat } from "@/actions";
+import { NewMessageDto, getUserChat, getUserNFTs } from "@/actions";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
@@ -9,48 +9,65 @@ import MessageBox from "@/components/MessageBox";
 import useSocket from "@/providers/socket.provider";
 import { useSocketContext } from "@/providers/useSocketContext";
 import NFTBox from "@/components/NftBox";
+import { DigitalAsset } from "@metaplex-foundation/mpl-token-metadata";
+import NFTImage from "@/components/NftImage";
+import { Ghost } from "lucide-react";
+import { TransactionChannelDto } from "@/types/websocket.types";
+import base58 from "bs58";
+import { Transaction } from "@solana/web3.js";
 
 const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID as string;
 
 const USER_NEW_MESSAGE_CHANNEL = (companyId: string, userAddress: string) => `chat:new-message:${companyId}:${userAddress}`;
+const USER_TRANSACTION_CHANNEL = (companyId: string, userAddress: string) => `transaction:new:${companyId}:${userAddress}`;
 
 export default function ChatSessionPage() {
   const params = useParams<{ userAddress: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { publicKey } = useWallet();
+  const { publicKey, signTransaction } = useWallet();
 
   const socket = useSocketContext();
 
   const [messages, setMessages] = useState<NewMessageDto[]>([]);
   const [message, setMessage] = useState("");
 
+  const [myAssets, setMyAssets] = useState<DigitalAsset[]>([]);
+  const [otherUserAssets, setOtherUserAssets] = useState<DigitalAsset[]>([]);
+
   const [myNFTBox, setMyNFTBox] = useState<{ index: number; label: string }[]>([]);
   const [otherNFTBox, setOtherNFTBox] = useState<{ index: number; label: string }[]>([]);
 
+  useEffect(() => {
+    async function getAssets() {
+      try {
+        const _asset = await getUserNFTs(publicKey?.toBase58()!);
+
+        setMyAssets(_asset!);
+
+        const _otherUserAssets = await getUserNFTs(params.userAddress);
+
+        setOtherUserAssets(_otherUserAssets!);
+      } catch (err) {
+        console.log(err);
+      }
+    }
+    getAssets();
+  }, [publicKey, params.userAddress]);
+
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
-    console.log("Sent Messahe");
+    console.log("Sent Message");
     if (message.trim() !== "") {
       socket?.emit(
         "new_message",
-        { message: message, toAddress: params.userAddress },
+        { message: message, toAddress: params.userAddress, fromAddress: publicKey?.toBase58() },
         (returnedMessage: { message: string; fromAddress: string; toAddress: string; timestamp: string }) => {
           console.log(returnedMessage);
           setMessages((prevMessages) => [...prevMessages, returnedMessage]);
         }
       );
       setMessage("");
-    }
-  };
-
-  const handleNftBoxClick = (index: number, label: string) => {
-    if (searchParams.get("suggestNFTs") == null) {
-      setMyNFTBox((prev) => (prev.some((item) => item.index === index) ? prev.filter((item) => item.index !== index) : [...prev, { index, label }]));
-    } else {
-      setOtherNFTBox((prev) =>
-        prev.some((item) => item.index === index) ? prev.filter((item) => item.index !== index) : [...prev, { index, label }]
-      );
     }
   };
 
@@ -80,12 +97,17 @@ export default function ChatSessionPage() {
   }, [params.userAddress]);
 
   useEffect(() => {
-    console.log("Listening to Received Message");
-
+    if (!signTransaction) return;
     const channel = USER_NEW_MESSAGE_CHANNEL(COMPANY_ID, publicKey?.toBase58()!);
 
-    console.log(`Listening to ${channel}`);
-    console.log(`Socket connected: ${socket?.connected}`);
+    const transactionChannel = USER_TRANSACTION_CHANNEL(COMPANY_ID, publicKey?.toBase58()!);
+
+    socket?.on(transactionChannel, async (dto: TransactionChannelDto) => {
+      const transaction = Transaction.from(base58.decode(dto.serializedTransaction));
+
+      const signature = await signTransaction(transaction);
+      console.log(signature);
+    });
 
     socket?.on(channel, (messageObject: NewMessageDto) => {
       console.log("RECIVED MESSAGE");
@@ -118,32 +140,43 @@ export default function ChatSessionPage() {
           </button>
         </form>
       </div>
-      {/* Right column (empty for now) */}
       <div className="grid grid-cols-2 p-4 w-2/3">
         <ScrollArea className="border border-black col-span-1 w-full ">
-          <div className="grid grid-cols-4 gap-4 p-3">
-            {myNFTBox.map((nft) => (
-              <NFTBox key={nft.index} index={nft.index} label={nft.label} onClick={handleNftBoxClick} />
-            ))}
-          </div>
+          <div id="your-trades" className="grid grid-cols-4 gap-4 p-3"></div>
         </ScrollArea>
         <ScrollArea className="border border-black col-span-1 w-full">
-          <div className="grid grid-cols-4 gap-4 p-3">
-            {otherNFTBox.map((nft) => (
-              <NFTBox key={nft.index} index={nft.index} label={nft.label} onClick={handleNftBoxClick} />
-            ))}
-          </div>
+          <div id="other-user-trades" className="grid grid-cols-4 gap-4 p-3"></div>
         </ScrollArea>
 
         <ScrollArea className="border border-black col-span-2 w-full">
-          <div className="grid grid-cols-8 gap-4 p-3">
-            {Array(26)
-              .fill(null)
-              .map((_, index) => (
-                <div key={index} className="flex justify-center items-center text-center aspect-[1] border border-gray-200 p-2">
-                  {searchParams.get("suggestNFTs") == null ? `MINE` : "OTHER"} {index + 1}
+          <div className="grid grid-cols-5 gap-4 p-3">
+            {searchParams.get("suggestNFTs") == null ? (
+              myAssets.length === 0 ? (
+                <div className="flex flex-col items-center justify-center">
+                  <Ghost />
+                  <p>No Asset Found</p>
                 </div>
-              ))}
+              ) : (
+                myAssets.map((asset) => (
+                  <div key={asset.metadata.mint} className="flex flex-col items-center justify-center text-center">
+                    <NFTImage uri={asset.metadata.uri} />
+                    <p className="text-sm">{asset.metadata.name}</p>
+                  </div>
+                ))
+              )
+            ) : otherUserAssets.length === 0 ? (
+              <div className="flex flex-col items-center justify-center">
+                <Ghost />
+                <p>No Asset Found</p>
+              </div>
+            ) : (
+              otherUserAssets.map((asset) => (
+                <div key={asset.metadata.mint} className="flex flex-col items-center justify-center text-center">
+                  <NFTImage uri={asset.metadata.uri} />
+                  <p className="text-sm">{asset.metadata.name}</p>
+                </div>
+              ))
+            )}
           </div>
         </ScrollArea>
         <div className="flex items-center justify-center col-span-2 pt-4">

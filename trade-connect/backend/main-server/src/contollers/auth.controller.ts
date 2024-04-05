@@ -7,6 +7,7 @@ import {
   createCompanyService,
   removeWhitelistCollectionService,
   signInCompanyService,
+  getCompanyService,
 } from "../services/auth.service";
 import errorHandler from "../lib/errorHandler";
 import { initCompanyInfoGRPC } from "../grpc";
@@ -38,7 +39,19 @@ export async function loginCompany(req: Request, res: Response) {
     // validation
     const dto = signInCompanySchema.parse(req.body);
 
-    const company = await signInCompanyService(dto);
+    const { company, jwt } = await signInCompanyService(dto);
+    return res.status(200).json({ success: true, company, jwt });
+  } catch (err: any) {
+    return errorHandler(err, req, res);
+  }
+}
+
+export async function getCompany(req: Request, res: Response) {
+  try {
+    const resCompany = res.locals.company;
+
+    const company = await getCompanyService(resCompany.companyId);
+
     return res.status(200).json({ success: true, company });
   } catch (err: any) {
     return errorHandler(err, req, res);

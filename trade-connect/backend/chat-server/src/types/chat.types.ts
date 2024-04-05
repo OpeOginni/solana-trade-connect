@@ -8,6 +8,17 @@ export const newMessageSchema = z.object({
     .string()
     .optional()
     .default(() => new Date().toISOString()),
+  isTrade: z.boolean(),
+  tradeDetails: z
+    .object({
+      tradeCreatorAddress: z.string(),
+      tradeCreatorSwapItems: z.string().array(),
+      tradeRecipientAddress: z.string(),
+      tradeRecipientSwapItems: z.string().array(),
+      lastUpdatedBy: z.string(),
+      status: z.string(),
+    })
+    .optional(),
 });
 
 export const storedUserSchema = z.object({

@@ -1,12 +1,20 @@
 import { Company } from "@prisma/client";
 import db from "../db";
-import { compareSecret, hashSecret } from "../lib/auth";
+import { compareSecret, generateCompanyToken, hashSecret } from "../lib/auth";
 import { CreateCompanyDto, SignInCompanyDto, UpdateWhitelistedCollectionsDto } from "../types/auth.type";
 import CustomError from "../lib/customError";
 // import { initCompanyInfoGRPC } from "../grpc/client";
 
 export async function createCompanyService(dto: CreateCompanyDto) {
   dto.password = await hashSecret(dto.password);
+
+  const exisitingCompany = await db.company.findUnique({
+    where: {
+      email: dto.email,
+    },
+  });
+
+  if (exisitingCompany) throw new CustomError("Sign Up Error", "Account already created with Email", 400);
 
   const newCompany: Company = await db.company.create({
     data: {
@@ -38,11 +46,13 @@ export async function signInCompanyService(dto: SignInCompanyDto) {
     },
   });
 
-  if (!(await compareSecret(dto.password, company.password))) throw new CustomError("Sign In Error", "Incorrect Email or Password", 500);
+  if (!(await compareSecret(dto.password, company.password))) throw new CustomError("Sign In Error", "Incorrect Email or Password", 401);
 
   //TODO: Send in JWT to be stored
 
-  return company;
+  const jwt = generateCompanyToken(company.id);
+
+  return { company, jwt };
 }
 
 export async function addWhitelistCollectionService(dto: UpdateWhitelistedCollectionsDto) {
@@ -101,4 +111,18 @@ export async function authenticateAccessKey(companyId: string, accessKey: string
 
   if (!access) return false;
   return true;
+}
+
+export async function getCompanyService(companyId: string) {
+  const company = await db.company.findUnique({
+    where: {
+      id: companyId,
+    },
+    select: {
+      accessKey: true,
+      companyName: true,
+    },
+  });
+
+  return company;
 }

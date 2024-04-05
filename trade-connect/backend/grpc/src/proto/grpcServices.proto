@@ -12,6 +12,17 @@ service TradeService {
     rpc AcceptTrade(UpdateTradeStatusRequest) returns (UpdateTradeStatusResponse);
     rpc RejectTrade(UpdateTradeStatusRequest) returns (UpdateTradeStatusResponse);
     rpc CancleTrade(UpdateTradeStatusRequest) returns (UpdateTradeStatusResponse);
+    rpc SignedDepositTransaction(SignedDepositTransactionRequest) returns (SignedDepositTransactionResponse);
+}
+
+message Trade {
+  string id = 1;
+  string tradeCreatorAddress = 2;
+  repeated string tradeCreatorSwapItems = 3;
+  string tradeRecipientAddress = 4;
+  repeated string tradeRecipientSwapItems = 5;
+  string lastUpdatedBy =6;
+  string status = 7;
 }
 
 message InitCompanyInfoRequest {
@@ -31,9 +42,15 @@ message CreateTradeRequest {
   repeated string tradeRecipientSwapItems = 5;
 }
 
+message SignedDepositTransactionRequest {
+  string tradeId = 1;
+  string signerAddress = 2;
+}
+
 message CreateTradeResponse {
   bool success = 1;
   string tradeId = 2;
+  Trade trade = 3;
 }
 
 message UpdateTradeItemsRequest {
@@ -47,6 +64,7 @@ message UpdateTradeItemsResponse {
   bool success = 1;
   string tradeId = 2;
   string otherUserAddress = 3;
+  Trade trade = 4;
 }
 
 message UpdateTradeStatusRequest {
@@ -58,4 +76,10 @@ message UpdateTradeStatusResponse {
   bool success = 1;
   string tradeId = 2;
   string otherUserAddress = 3;
+  map<string, string> serializedTransactions = 4;
+  Trade trade = 5;
+}
+
+message SignedDepositTransactionResponse {
+  bool success = 1;
 }

@@ -1,9 +1,0 @@
-/node_modules
-/src
-
-.env
-.DS_Store
-.prettierrc
-
-tsconfig.json
-tsup.config.ts

@@ -12,3 +12,15 @@ export const verifyUserToken = (token: string) => {
   const tokenPayload = decodedTokenSchema.parse(decoded);
   return tokenPayload;
 };
+
+export const generateUserToken = (companyId: string, userAddress: string, exp?: number): string => {
+  const signedToken = jwt.sign(
+    {
+      exp: exp,
+      companyId: companyId,
+      userAddress: userAddress,
+    },
+    TOKEN_SECRET
+  );
+  return signedToken;
+};

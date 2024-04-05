@@ -4,6 +4,9 @@ import db from "../db";
 import CustomError from "../lib/customError";
 import { TradeStatus } from "../types/enums";
 import { InitializeTradeDto, UpdateTradeItemsDto, UpdateTradeStatusDto } from "../types/trade.types";
+import { Trade } from "@prisma/client";
+import { Connection, Keypair, PublicKey } from "@solana/web3.js";
+import { createTransactionToTradeItems } from "./transaction.service";
 
 export async function initializeTradeService(dto: InitializeTradeDto) {
   const newTrade = await db.trade.create({
@@ -66,7 +69,9 @@ export async function acceptTradeService(dto: UpdateTradeStatusDto) {
     },
   });
 
-  return acceptedTrade;
+  const transactions = await acceptTradeSolanaService(trade);
+
+  return { acceptedTrade, transactions };
 }
 
 export async function rejectTradeService(dto: UpdateTradeStatusDto) {
@@ -119,4 +124,30 @@ export async function cancleTradeService(dto: UpdateTradeStatusDto) {
   });
 
   return cancledTrade;
+}
+
+export async function acceptTradeSolanaService(trade: Trade) {
+  const tradeCreatorSwapItemsPublicKeys = trade.tradeCreatorSwapItems.map((item) => new PublicKey(item));
+  const tradeRecipientSwapItemsPublicKeys = trade.tradeRecipientSwapItems.map((item) => new PublicKey(item));
+
+  // Create Each User Transaction and send back the encoded base58 transaction
+  const tradeCreatorTransation = await createTransactionToTradeItems(
+    new PublicKey(trade.tradeCreatorAddress),
+    trade.id,
+    tradeCreatorSwapItemsPublicKeys
+  );
+
+  const tradeRecipientTransaction = await createTransactionToTradeItems(
+    new PublicKey(trade.tradeRecipientAddress),
+    trade.id,
+    tradeRecipientSwapItemsPublicKeys
+  );
+
+  return {
+    success: true,
+    transactions: {
+      tradeCreatorTransation: tradeCreatorTransation.transactionBase58,
+      tradeRecipientTransaction: tradeRecipientTransaction.transactionBase58,
+    },
+  };
 }
