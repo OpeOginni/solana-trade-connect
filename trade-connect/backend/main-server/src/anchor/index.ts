@@ -5,9 +5,11 @@ import IDL from "./IDL";
 
 dotenv.config();
 
-const secretKey = process.env.SOLANA_SECRET_KEY! as Iterable<number>;
+const secretKey = process.env.SOLANA_SECRET_KEY!;
 
-let adminSecretKey = Uint8Array.from(secretKey);
+const secretKeyArray = JSON.parse(secretKey);
+
+let adminSecretKey = Uint8Array.from(secretKeyArray);
 
 let adminKeyPair = Keypair.fromSecretKey(adminSecretKey);
 // const adminKeyPair = Keypair.fromSecretKey(Buffer.from(process.env.SOLANA_ADMIN_PRIVATE_KEY!, "base64"));
