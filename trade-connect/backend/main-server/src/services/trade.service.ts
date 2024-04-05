@@ -6,7 +6,6 @@ import { TradeStatus } from "../types/enums";
 import { InitializeTradeDto, UpdateTradeItemsDto, UpdateTradeStatusDto } from "../types/trade.types";
 import { Trade } from "@prisma/client";
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
-import program from "../anchor";
 import { createTransactionToTradeItems } from "./transaction.service";
 
 export async function initializeTradeService(dto: InitializeTradeDto) {
@@ -128,20 +127,20 @@ export async function cancleTradeService(dto: UpdateTradeStatusDto) {
 }
 
 export async function acceptTradeSolanaService(trade: Trade) {
-  const adminWallet = Keypair.fromSecretKey(Buffer.from(process.env.SOLANA_ADMIN_PRIVATE_KEY!, "base64"));
-
-  const connection = new Connection(process.env.SOLANA_DEVNET_RPC_URL!, "confirmed");
-
-  // using the anchor program create the escrow contract
-  await program.methods?.init()?.rpc?.();
+  const tradeCreatorSwapItemsPublicKeys = trade.tradeCreatorSwapItems.map((item) => new PublicKey(item));
+  const tradeRecipientSwapItemsPublicKeys = trade.tradeRecipientSwapItems.map((item) => new PublicKey(item));
 
   // Create Each User Transaction and send back the encoded base58 transaction
-  const tradeCreatorTransation = await createTransactionToTradeItems(new PublicKey(trade.tradeCreatorAddress), trade.id, trade.tradeCreatorSwapItems);
+  const tradeCreatorTransation = await createTransactionToTradeItems(
+    new PublicKey(trade.tradeCreatorAddress),
+    trade.id,
+    tradeCreatorSwapItemsPublicKeys
+  );
 
   const tradeRecipientTransaction = await createTransactionToTradeItems(
     new PublicKey(trade.tradeRecipientAddress),
     trade.id,
-    trade.tradeRecipientSwapItems
+    tradeRecipientSwapItemsPublicKeys
   );
 
   return {

@@ -1,9 +1,6 @@
 import { z } from "zod";
 
-export type SerializedTransactionDTO = {
-  transactionBase58: string;
-};
-
+//TODO: Validate the Address String type by giving address lenght, etc
 export const signedDepositTransactionSchema = z.object({
   tradeId: z.string().uuid(),
   signerAddress: z.string(),

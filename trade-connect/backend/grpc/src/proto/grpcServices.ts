@@ -15,6 +15,8 @@ export interface ProtoGrpcType {
     CreateTradeResponse: MessageTypeDefinition
     InitCompanyInfoRequest: MessageTypeDefinition
     InitCompanyInfoResponse: MessageTypeDefinition
+    SignedDepositTransactionRequest: MessageTypeDefinition
+    SignedDepositTransactionResponse: MessageTypeDefinition
     Trade: MessageTypeDefinition
     TradeService: SubtypeConstructor<typeof grpc.Client, _chat_main_TradeServiceClient> & { service: _chat_main_TradeServiceDefinition }
     UpdateTradeItemsRequest: MessageTypeDefinition

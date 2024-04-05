@@ -12,6 +12,8 @@ import {
 } from "./services/trade.service";
 import grpcErrorHandler from "./lib/grpcErrorHandler";
 import CustomError from "./lib/customError";
+import { signedDepositTransactionSchema } from "./types/transaction.types";
+import { updateDepositState } from "./services/transaction.service";
 
 const { server: grpcServer, grpcPackage } = getGrpcServer();
 
@@ -119,6 +121,17 @@ export async function _getGRPCServer() {
         const response = await cancleTradeService(dto);
 
         res(null, { success: true, tradeId: response.id, trade: response });
+      } catch (err: any) {
+        console.error(err);
+        return grpcErrorHandler(res, err);
+      }
+    },
+    SignedDepositTransaction: async (req, res) => {
+      try {
+        const dto = signedDepositTransactionSchema.parse(req.request);
+
+        const response = await updateDepositState(dto.tradeId, dto.signerAddress);
+        res(null, response);
       } catch (err: any) {
         console.error(err);
         return grpcErrorHandler(res, err);

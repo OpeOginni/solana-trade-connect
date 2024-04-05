@@ -9,6 +9,8 @@ import { CompanyServiceHandlers } from "../../grpc/dist/proto/chat_main/CompanyS
 import { InitializeTradeDto, UpdateTradeItemsDto, UpdateTradeStatusDto } from "./types/trade.types";
 import { saveCompanySchema } from "./types/company.types";
 import { initializeCompany } from "./websocket/messages.websocket";
+import { SignedDepositTransactionDto } from "./types/transaction.types";
+import { SignedDepositTransactionResponse__Output } from "../../grpc/dist/proto/chat_main/SignedDepositTransactionResponse";
 
 const { server: grpcServer, grpc, grpcPackage } = getGrpcServer();
 
@@ -87,6 +89,22 @@ export async function rejectTradeGRPC(dto: UpdateTradeStatusDto): Promise<Update
 export async function cancleTradeGRPC(dto: UpdateTradeStatusDto): Promise<UpdateTradeStatusResponse__Output> {
   return new Promise((resolve, reject) => {
     grpcClient.tradeServiceClient.CancleTrade(dto, (err, result) => {
+      if (err) {
+        console.error(err);
+        reject(err);
+      } else if (!result) {
+        reject(new Error("Result is undefined"));
+      } else {
+        console.log(result);
+        resolve(result);
+      }
+    });
+  });
+}
+
+export async function signedDepositTransactionGRPC(dto: SignedDepositTransactionDto): Promise<SignedDepositTransactionResponse__Output> {
+  return new Promise((resolve, reject) => {
+    grpcClient.tradeServiceClient.SignedDepositTransaction(dto, (err, result) => {
       if (err) {
         console.error(err);
         reject(err);

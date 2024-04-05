@@ -1,13 +1,18 @@
 import { Connection, PublicKey, Keypair } from "@solana/web3.js";
-import { AnchorProvider, setProvider, Program } from "@project-serum/anchor";
-const adminWallet = Keypair.fromSecretKey(Buffer.from(process.env.SOLANA_ADMIN_PRIVATE_KEY!, "base64"));
+import { AnchorProvider, setProvider, Program, Wallet } from "@project-serum/anchor";
+import dotenv from "dotenv";
+import IDL from "./IDL";
+
+dotenv.config();
+const adminKeyPair = Keypair.fromSecretKey(Buffer.from(process.env.SOLANA_ADMIN_PRIVATE_KEY!, "base64"));
+
+export const adminWallet = new Wallet(adminKeyPair);
 
 const connection = new Connection(process.env.SOLANA_DEVNET_RPC_URL!, "confirmed");
 
-setProvider(AnchorProvider.env());
+const provider = new AnchorProvider(connection, adminWallet, AnchorProvider.defaultOptions());
+const idl = IDL;
 
-const idl = require("../lib/idl.json");
-const programId = new PublicKey(process.env.SOLANA_PROGRAM_ID!);
+const programId = process.env.SOLANA_PROGRAM_ID!;
 
-const program = new Program(idl, programId);
-export default program;
+export const program = new Program(idl, programId, provider);

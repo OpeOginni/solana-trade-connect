@@ -9,12 +9,13 @@ import {
   updateTradeItemsSchema,
   updateTradeStatusSchema,
 } from "../types/trade.types";
-import { acceptTradeGRPC, cancleTradeGRPC, createTradeGRPC, rejectTradeGRPC, updateTradeItemsGRPC } from "../grpc";
+import { acceptTradeGRPC, cancleTradeGRPC, createTradeGRPC, rejectTradeGRPC, signedDepositTransactionGRPC, updateTradeItemsGRPC } from "../grpc";
 import { sendMessage } from "./messages.websocket";
 import { NewMessageInputDto } from "../types/chat.types";
 import CustomError from "../lib/customError";
 import { publisher } from "../redis";
 import { USER_TRANSACTION_CHANNEL } from "../redis/channels";
+import { SignedDepositTransactionDto } from "../types/transaction.types";
 
 export async function createTrade(socket: Socket, newTrade: InitializeTradeDto) {
   const companyId = socket.data.user.companyId as string;
@@ -75,6 +76,15 @@ export async function updateTrade(socket: Socket, updatedItems: UpdateTradeItems
   await sendMessage(socket, newMessage);
 }
 
+export async function signedDepositTransaction(socket: Socket, dto: SignedDepositTransactionDto) {
+  const userAddress = socket.data.user.userAddress as string;
+
+  const response = await signedDepositTransactionGRPC({ tradeId: dto.tradeId, signerAddress: userAddress });
+
+  if (!response.success) throw new CustomError("Signed Deposit Error", "GRPC Error", 500);
+  console.log(`User ${userAddress} Signed Deposit Transaction`);
+}
+
 export async function acceptTrade(socket: Socket, updatedItems: UpdateTradeStatusDto) {
   const companyId = socket.data.user.companyId as string;
   const userAddress = socket.data.user.userAddress as string;
@@ -100,12 +110,6 @@ export async function acceptTrade(socket: Socket, updatedItems: UpdateTradeStatu
       status: response.trade.status!,
     },
   };
-
-  // const newTransaction = {
-  //   fromAddress: userAddress,
-  //   toAddress: response.otherUserAddress!,
-  //   message: `[TRANSACTION]:${response.transaction}`,
-  // };
 
   await sendMessage(socket, newMessage);
 }

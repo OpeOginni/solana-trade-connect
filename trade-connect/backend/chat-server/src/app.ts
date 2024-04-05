@@ -9,7 +9,7 @@ import { getHealthCheck } from "./controllers/health-check.controller";
 import { disconnectUser, initializeUser, sendMessage, getRecentChats } from "./websocket/messages.websocket";
 import { NewMessageDto } from "./types/chat.types";
 import { setupRedisSubscriptions } from "./redis/redisSubscription";
-import { acceptTrade, cancleTrade, createTrade, rejectTrade, updateTrade } from "./websocket/trades.websocket";
+import { acceptTrade, cancleTrade, createTrade, rejectTrade, signedDepositTransaction, updateTrade } from "./websocket/trades.websocket";
 import { InitializeTradeDto, UpdateTradeItemsDto, UpdateTradeStatusDto } from "./types/trade.types";
 import socketErrorHandler from "./lib/emitError";
 import { verifyUserToken } from "./lib/auth";
@@ -17,6 +17,7 @@ import { getUserChat } from "./controllers/chat.controller";
 import chatRouter from "./routes/chat.route";
 import companyRouter from "./routes/auth.route";
 import authRouter from "./routes/auth.route";
+import { SignedDepositTransactionDto } from "./types/transaction.types";
 dotenv.config();
 
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:3000";
@@ -119,6 +120,14 @@ export default async function buildServer() {
     socket.on("cancle_trade", async (dto: UpdateTradeStatusDto) => {
       try {
         await cancleTrade(socket, dto);
+      } catch (err: any) {
+        socketErrorHandler(socket, err);
+      }
+    });
+
+    socket.on("signed_deposit", async (dto: SignedDepositTransactionDto) => {
+      try {
+        await signedDepositTransaction(socket, dto);
       } catch (err: any) {
         socketErrorHandler(socket, err);
       }
