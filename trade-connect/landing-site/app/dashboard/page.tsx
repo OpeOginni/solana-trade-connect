@@ -58,7 +58,7 @@ export default async function Dashboard() {
       <div className="text-center py-10">
         <p>
           Check Out Our{" "}
-          <Link href="https://github.com" target="_blank">
+          <Link href="https://github.com/OpeOginni/solana-trade-connect/blob/main/trade-connect/README.md" target="_blank">
             <span className="text-blue-700">Endpoint DOCS</span>
           </Link>
         </p>
@@ -67,7 +67,7 @@ export default async function Dashboard() {
       <div className="text-center py-10">
         <p>
           Check Out Our{" "}
-          <Link href="https://github.com" target="_blank">
+          <Link href="https://github.com/OpeOginni/solana-trade-connect/tree/main/example-dapp" target="_blank">
             <span className="text-blue-700">Example DAPP</span>
           </Link>{" "}
           for implementation tips
