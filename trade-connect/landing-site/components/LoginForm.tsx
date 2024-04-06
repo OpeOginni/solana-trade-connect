@@ -53,7 +53,6 @@ export function LoginForm() {
         <CardFooter>
           <Button disabled={isLoading} className="w-full">
             {isLoading ? "Signing In..." : "Sign in"}
-            Sign in
           </Button>
         </CardFooter>
       </form>
