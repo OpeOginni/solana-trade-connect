@@ -119,6 +119,8 @@ The provided callback function will be executed with a `message` object upon suc
 - `toAddress`: string - Recipient's Solana wallet address
 - `timestamp`: string - Message timestamp (in ISO 8601 format)
 
+[Complete Message Type](https://github.com/OpeOginni/solana-trade-connect/blob/main/trade-connect/backend/chat-server/src/types/chat.types.ts#L3)
+
 **Example:**
 
 ```typescript
@@ -155,15 +157,26 @@ Creates a trade object and returns the trade ID as the chat message.
 - `tradeRecipientAddress`: string - Solana wallet address of the recipient user.
 - `tradeRecipientSwapItems`: string[] - List of Solana wallet addresses or NFTs the recipient offers to swap (can be wallet addresses of tokens or NFTs).
 
+**Callback Function:**
+
+The provided callback function will be executed with a `message` object upon successful message delivery. The `message` object includes:
+
+- `message`: string - The sent message content
+- `fromAddress`: string - Sender's Solana wallet address
+- `toAddress`: string - Recipient's Solana wallet address
+- `timestamp`: string - Message timestamp (in ISO 8601 format)
+
+[Complete Message Type](https://github.com/OpeOginni/solana-trade-connect/blob/main/trade-connect/backend/chat-server/src/types/chat.types.ts#L3)
+
 **Example Payload:**
 
 ```json
 {
   "companyId": "company_123",
   "tradeCreatorAddress": "user1_wallet_address",
-  "tradeCreatorSwapItems": ["token_address_1", "token_address_2"],
+  "tradeCreatorSwapItems": ["asset_mint_address_1", "asset_mint_address_2"],
   "tradeRecipientAddress": "user2_wallet_address",
-  "tradeRecipientSwapItems": ["token_address_3"]
+  "tradeRecipientSwapItems": ["asset_mint_address_3"]
 }
 ```
 
