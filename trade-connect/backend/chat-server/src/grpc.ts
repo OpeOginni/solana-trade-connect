@@ -16,9 +16,9 @@ const { server: grpcServer, grpc, grpcPackage } = getGrpcServer();
 
 dotenv.config();
 
-const MAIN_GRPC_PORT = parseInt(process.env.GRPC_PORT || "8080");
+const MAIN_GRPC_PORT = parseInt(process.env.MAIN_GRPC_PORT || "8080");
 
-const MAIN_GRPC_HOST = process.env.GRPC_HOST || "0.0.0.0";
+const MAIN_GRPC_HOST = process.env.MAIN_GRPC_HOST || "0.0.0.0";
 
 const grpcClient = getGrpcClient(MAIN_GRPC_HOST, MAIN_GRPC_PORT);
 

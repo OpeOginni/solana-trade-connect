@@ -16,21 +16,27 @@ const GRPC_HOST = process.env.GRPC_HOST || "0.0.0.0";
 
 // GRPC SERVER SETUP
 
+const SERVER_TYPE = process.env.SERVER_TYPE;
+
 async function main() {
   const app = await buildRestServer();
   const grpcServer = await _getGRPCServer();
 
   try {
-    app.listen(PORT, HOST, () => {
-      console.log(`Main Server started at http://${HOST}:${PORT}`);
-    });
-
-    grpcServer.bindAsync(`${GRPC_HOST}:${GRPC_PORT}`, grpc.ServerCredentials.createInsecure(), (err, port) => {
-      if (err) {
-        throw err;
-      }
-      console.log(`Main gRPC server started on ${GRPC_HOST}:${GRPC_PORT}`);
-    });
+    if (SERVER_TYPE === "HTTP") {
+      app.listen(PORT, HOST, () => {
+        console.log(`Main Server started at http://${HOST}:${PORT}`);
+      });
+    } else if (SERVER_TYPE === "GRPC") {
+      grpcServer.bindAsync(`${GRPC_HOST}:${GRPC_PORT}`, grpc.ServerCredentials.createInsecure(), (err, port) => {
+        if (err) {
+          throw err;
+        }
+        console.log(`Main gRPC server started on ${GRPC_HOST}:${GRPC_PORT}`);
+      });
+    } else {
+      throw new Error("Invalid Server Type");
+    }
   } catch (e) {
     console.error(e);
     process.exit(1);
