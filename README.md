@@ -31,6 +31,10 @@ Also with more time and resources put into the project we can better strcuture t
 
 Stay tuned for these exciting updates!
 
-## Contributing
+## Test For yourself
 
-We welcome contributions from the community. If you'd like to contribute, please fork the repository, make your changes, and submit a pull request.
+- Clone the [trade-connect-example-dapp](https://github.com/OpeOginni/trade-connect-example-dapp) repo
+- Sign Up and Get your Company Details from [**Trade Connect**](https://github.com/OpeOginni/solana-trade-connect/blob/main/trade-connect/backend/chat-server/src/app.ts)
+- Update the values into the `.env.local` file.
+- Run `npm install` or `bun install` to install all needed dependencies.
+- Then run `npm run dev` or `bun run dev` to run the example-dapp using the Trade Connect APIs
