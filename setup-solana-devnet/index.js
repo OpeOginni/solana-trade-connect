@@ -7,17 +7,17 @@ import umi from "./src/umi.js";
 
 const nfts = [
   {
-    name: "Trade Connect NFT 1",
-    description: "This is NFT 1",
+    name: "Trade Connect NFT 3",
+    description: "This is NFT 3",
     imageFile: "./images/nft_1.jpg",
-    destination: "24fvDahwXfPsVBZS8bVZsPYgVRZXAXUtmdHAkeTHqNza",
+    destination: "9qdhXAAAbjDejBKSJPv7vYdSvxTn7KVkEHo3pVvQ4ssB",
     alreadySavedURI: "",
   },
   {
-    name: "Trade Connect NFT 2",
-    description: "This is NFT 2",
+    name: "Trade Connect NFT 4",
+    description: "This is NFT 4",
     imageFile: "./images/nft_2.jpg",
-    destination: "ERaTx7xhUwZWeyQDjJ4jUJTtai3DutFDZuG2nUBY8F1Y",
+    destination: "9qdhXAAAbjDejBKSJPv7vYdSvxTn7KVkEHo3pVvQ4ssB",
     alreadySavedURI: "",
   },
 ];

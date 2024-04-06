@@ -66,7 +66,9 @@ export async function sendMessage(socket: Socket, newMessage: NewMessageInputDto
   const userAddress = socket.data.user.userAddress as string;
 
   newMessage.fromAddress = userAddress;
-  newMessage.isTrade = false;
+
+  if (!newMessage.isTrade) newMessage.isTrade = false;
+
   const message = newMessageSchema.parse(newMessage);
 
   const reciever = await publisher.hgetall(`company:${companyId}:user:${message.toAddress}`);
