@@ -22,7 +22,7 @@ export default function Layout({
         return;
       }
 
-      // await getWebsocketJWT(publicKey.toBase58()!);
+      await getWebsocketJWT(publicKey.toBase58()!);
     }
     checkConnectedWallet();
   }, [connected]);
