@@ -8,10 +8,10 @@ const REDIS_PORT = parseInt(process.env.REDIS_PORT || "6379");
 const REDIS_HOST = process.env.REDIS_HOST;
 const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
 
-if (!UPSTASH_REDIS_REST_URL) {
-  console.error("UPSTASH_REDIS_REST_URL is required");
-  process.exit(1);
-}
+// if (!UPSTASH_REDIS_REST_URL) {
+//   console.error("UPSTASH_REDIS_REST_URL is required");
+//   process.exit(1);
+// }
 
 // If we set encypted to true
 // const publisher = new Redis(UPSTASH_REDIS_REST_URL, {
