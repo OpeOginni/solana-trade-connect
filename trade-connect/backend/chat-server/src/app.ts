@@ -85,9 +85,10 @@ export default async function buildServer() {
     });
 
     // TRADE
-    socket.on("create_trade", async (newTrade: InitializeTradeDto) => {
+    socket.on("create_trade", async (newTrade: InitializeTradeDto, callback) => {
       try {
-        await createTrade(socket, newTrade);
+        const message = await createTrade(socket, newTrade);
+        callback(message);
       } catch (err: any) {
         socketErrorHandler(socket, err);
       }

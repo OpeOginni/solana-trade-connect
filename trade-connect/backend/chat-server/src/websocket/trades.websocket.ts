@@ -43,8 +43,9 @@ export async function createTrade(socket: Socket, newTrade: InitializeTradeDto) 
       status: response.trade.status!,
     },
   };
-
   await sendMessage(socket, newMessage);
+
+  return newMessage;
 }
 
 export async function updateTrade(socket: Socket, updatedItems: UpdateTradeItemsDto) {
