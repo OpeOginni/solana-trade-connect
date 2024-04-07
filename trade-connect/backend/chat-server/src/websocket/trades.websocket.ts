@@ -191,7 +191,6 @@ export async function sendTransaction(socket: Socket, transactions: Transactions
   if (!reciever) {
     // Send Message User Doesnt exist
     // Reciever must be an address in that particular company ID
-    console.log("User Doesnt Exist");
     throw new CustomError("User Error", "User Doesnt Exist", 404);
   }
 

@@ -124,8 +124,6 @@ export async function _getGRPCServer() {
     InitCompanyInfo: async (req, res) => {
       try {
         const dto = saveCompanySchema.parse(req.request);
-        console.log(dto);
-
         await initializeCompany(dto);
 
         res(null, { success: true });

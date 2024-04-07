@@ -13,7 +13,6 @@ export const authenticatedRequest = async (accessToken: string) => {
         Authorization: `Bearer ${accessToken}`,
       },
     });
-    console.log(response.data);
     return response.data;
   } catch (error) {}
 };
