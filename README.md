@@ -34,7 +34,7 @@ Stay tuned for these exciting updates!
 ## Test For yourself
 
 - Clone the [trade-connect-example-dapp](https://github.com/OpeOginni/trade-connect-example-dapp) repo
-- Sign Up and Get your Company Details from [**Trade Connect**](https://github.com/OpeOginni/solana-trade-connect/blob/main/trade-connect/backend/chat-server/src/app.ts)
-- Update the values into the `.env.local` file.
+- Sign Up and Get your Company Details from [**Trade Connect**](https://solana-trade-connect.vercel.app/)
+- Update the needed variables shown in the `.env.example` file into a `.env.local` file.
 - Run `npm install` or `bun install` to install all needed dependencies.
 - Then run `npm run dev` or `bun run dev` to run the example-dapp using the Trade Connect APIs
