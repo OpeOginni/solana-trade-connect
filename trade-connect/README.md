@@ -4,7 +4,7 @@ This document describes the REST and WebSocket APIs for the Solana Trade Connect
 
 **Signup:**
 
-- Visit http://localhost:3000 to get your COMPANY_ID and ACCESS_KEY.
+- Visit [Trade Connect](https://solana-trade-connect.vercel.app/) to get your COMPANY_ID and ACCESS_KEY.
 
 ## REST API
 
