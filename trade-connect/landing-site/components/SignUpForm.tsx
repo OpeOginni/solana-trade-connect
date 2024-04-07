@@ -32,7 +32,6 @@ export function SignUpForm() {
         alert("There was a problem, please try again later");
         setIsLoading(false);
       }
-      console.log(response.data);
     } catch (error: any) {
       if (error instanceof axios.AxiosError) return alert(error.response?.data.message);
 

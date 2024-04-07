@@ -59,9 +59,6 @@ export async function getRecentChats(socket: Socket) {
 }
 
 export async function sendMessage(socket: Socket, newMessage: NewMessageInputDto) {
-  console.log("Sending Message");
-  console.log(newMessage);
-
   const companyId = socket.data.user.companyId as string;
   const userAddress = socket.data.user.userAddress as string;
 
@@ -76,7 +73,6 @@ export async function sendMessage(socket: Socket, newMessage: NewMessageInputDto
   if (!reciever) {
     // Send Message User Doesnt exist
     // Reciever must be an address in that particular company ID
-    console.log("User Doesnt Exist");
     return;
   }
   await publisher.rpush(CHAT_KEY(companyId, userAddress, message.toAddress), JSON.stringify(message));

@@ -40,7 +40,6 @@ export async function setupRedisSubscriptions(io: Server) {
     if (channel === NEW_MESSAGE_CHANNEL) {
       const { companyId, messageObject }: { companyId: string; messageObject: NewMessageDto } = JSON.parse(text); // Parse the JSON string
 
-      console.log(`Send EVENT TO ${USER_NEW_MESSAGE_CHANNEL(companyId, messageObject.toAddress)}`);
       // The specific user from a specific CompanyId will be listening to get newMessages (only get sent when they are online)
       io.emit(USER_NEW_MESSAGE_CHANNEL(companyId, messageObject.toAddress), messageObject);
     }

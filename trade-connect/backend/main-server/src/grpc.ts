@@ -26,10 +26,6 @@ const CHAT_GRPC_HOST = process.env.CHAT_GRPC_HOST || "0.0.0.0";
 const grpcClient = getGrpcClient(CHAT_GRPC_HOST, CHAT_GRPC_PORT);
 
 export async function initCompanyInfoGRPC(companyId: string, accessKey: string) {
-  console.log({
-    companyId,
-    accessKey,
-  });
   grpcClient.companyServiceClient.InitCompanyInfo(
     {
       companyId,
@@ -40,7 +36,6 @@ export async function initCompanyInfoGRPC(companyId: string, accessKey: string) 
         console.error(err);
         throw err;
       }
-      console.log(result);
     }
   );
 }
@@ -51,7 +46,6 @@ export async function _getGRPCServer() {
     CreateTrade: async (req, res) => {
       try {
         const dto = initializeTradeSchema.parse(req.request);
-        console.log(dto);
 
         const response = await initializeTradeService(dto);
 
@@ -64,7 +58,6 @@ export async function _getGRPCServer() {
     UpdateTradeItems: async (req, res) => {
       try {
         const dto = updateTradeItemsSchema.parse(req.request);
-        console.log(dto);
 
         const response = await updateTradeItemsService(dto);
 
@@ -77,7 +70,6 @@ export async function _getGRPCServer() {
     AcceptTrade: async (req, res) => {
       try {
         const dto = updateTradeStatusSchema.parse(req.request);
-        console.log(dto);
 
         const response = await acceptTradeService(dto);
 
@@ -103,7 +95,6 @@ export async function _getGRPCServer() {
     RejectTrade: async (req, res) => {
       try {
         const dto = updateTradeStatusSchema.parse(req.request);
-        console.log(dto);
 
         const response = await rejectTradeService(dto);
 
@@ -116,7 +107,6 @@ export async function _getGRPCServer() {
     CancleTrade: async (req, res) => {
       try {
         const dto = updateTradeStatusSchema.parse(req.request);
-        console.log(dto);
 
         const response = await cancleTradeService(dto);
 

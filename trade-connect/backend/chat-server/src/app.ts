@@ -62,8 +62,6 @@ export default async function buildServer() {
   });
 
   io.on("connection", async (socket) => {
-    console.log("Client Connected");
-
     await initializeUser(socket);
 
     // MESSAGE
@@ -136,8 +134,6 @@ export default async function buildServer() {
 
     // DISCONNECT
     socket.on("disconnect", async () => {
-      console.log("Client Disconnected");
-
       await disconnectUser(socket);
     });
   });
