@@ -4,6 +4,7 @@ import { createServer } from "http";
 import helmet from "helmet";
 import dotenv from "dotenv";
 import cors, { CorsOptions } from "cors";
+import { rateLimit } from "express-rate-limit";
 
 import { getHealthCheck } from "./controllers/health-check.controller";
 import { disconnectUser, initializeUser, sendMessage, getRecentChats } from "./websocket/messages.websocket";
@@ -13,9 +14,7 @@ import { acceptTrade, cancleTrade, createTrade, rejectTrade, signedDepositTransa
 import { InitializeTradeDto, UpdateTradeItemsDto, UpdateTradeStatusDto } from "./types/trade.types";
 import socketErrorHandler from "./lib/emitError";
 import { verifyUserToken } from "./lib/auth";
-import { getUserChat } from "./controllers/chat.controller";
 import chatRouter from "./routes/chat.route";
-import companyRouter from "./routes/auth.route";
 import authRouter from "./routes/auth.route";
 import { SignedDepositTransactionDto } from "./types/transaction.types";
 dotenv.config();
@@ -28,6 +27,13 @@ const corsOptions: CorsOptions = {
   optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
 };
 
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 2000,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+});
+
 export default async function buildServer() {
   const app = express();
 
@@ -35,6 +41,7 @@ export default async function buildServer() {
   app.use(express.json());
   // app.use(cors(corsOptions));
   app.use(cors());
+  app.use(limiter);
 
   const server = createServer(app);
 
