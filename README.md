@@ -16,7 +16,7 @@ By leveraging Solana Trade Connect, developers can focus on their core applicati
 
 To get started with Solana Trade Connect, you need to sign up your company on the Trade-Connect Site. Once signed up, you will have access to our APIs and documentation that guide you through the integration process.
 
-1. Sign up your company on the [Trade-Connect]() Site.
+1. Sign up your company on the [Trade-Connect](https://solana-trade-connect.vercel.app/) Site.
 2. Obtain your CompanyID and AccessKey and check out the integration documentation.
 3. Integrate trade, swap, and chat features into your DApps and games.
 
