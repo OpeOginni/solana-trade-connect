@@ -22,7 +22,7 @@ To get started with Solana Trade Connect, you need to sign up your company on th
 
 ## Dev Flow Architecutre
 
-![Developer Flow](/media/Trade-Connect_Client-Interaction-Diagram.png)
+![Developer Flow](/media/Trade_Connect-Client_Interaction_Diagram.png)
 
 ## Future Developments
 
